@@ -1,2 +1,20 @@
-# RALP_v1_00
-Performing physically based landslide susceptibility analysis for 3DTSP and 3DPLS 
+# Robust Areal Landslide Prediction (RALP) software ver 1.00 (RALP_v1_00)
+
+The RALP software provides a graphical user interface (GUI) enabling users to select parameters and generate necessary files 
+for performing physically based landslide susceptibility analysis for 3DTSP and 3DPLS.
+
+The repository provides the necessary Python scripts to run the RALP software on Windows, Linux, and MacOS. 
+However, it requires users to install Python and the necessary libraries.
+
+For Windows users, it is recommended to download the **"RALP_v1_00_window_setup.exe"** and install it on a local Windows PC. 
+It already contains Python and the libraries required for running 3DTSP and 3DPLS. 
+Therefore, it does not require the users to install and set up the Python environment.
+
+More details on the installation, RALP manual, and examples are described in the **"Robust Areal Landslide Prediction (RALP) - GUI v1.00 - User Manual.pdf"**.
+
+# References
+- [3DPLS]	Oguz, EA, Depina I, Thakur V (2022) Effects of soil heterogeneity on susceptibility of shallow landslides. Landslides, 19(1):67-83. https://doi.org/10.1007/s10346-021-01738-x
+- [3DTS] Cheon E, Oguz EA, DiBiagio A, Piciullo L (2025) A 3D Shallow Translational Landslide Susceptibility Model with DEM Cells Accounting for Side Resistance and Vegetation Effects. The 9th International Symposium for Geotechnical Safety and Risk (ISGSR) at Oslo, Norway. https://doi.org/10.3850/GRF-25280825_isgsr-007-P354-cd
+
+# Contact
+- Please contact through email **enok.cheon@ngi.no** if needed. However, informing any found bugs, software issues, or general feedback, please use the GitHub Issues
