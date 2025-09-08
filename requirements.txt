@@ -1,0 +1,10 @@
+cpython-version==3.10.11
+pyyaml==6.0.1
+numpy==1.26.4
+pandas==2.2.2
+scipy==1.13.0
+plotly==5.22.0
+laspy==2.5.3
+pykrige==1.7.1
+scikit-learn==1.4.2
+matplotlib==3.9.2

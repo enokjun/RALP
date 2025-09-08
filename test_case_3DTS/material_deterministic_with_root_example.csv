@@ -1,0 +1,2 @@
+ID,k_sat (m/s),initial_suction (kPa),SWCC_a (kPa),SWCC_n,SWCC_m,theta_sat,theta_residual,soil_m_v,max_surface_storage (m),soil unit weight (kN/m^3),phi (deg),phi_b (deg),c/Su (kPa),root unit weight (kN/m^3),root alpha2,root beta2,root RR_max (kN/m)
+1,1.00E-06,10,33.33,2,0.5,0.3831,0.0462,0,0,20,40,10,6,5,1.284,3.688,0.01

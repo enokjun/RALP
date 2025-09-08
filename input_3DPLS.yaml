@@ -1,0 +1,187 @@
+# =============================================================================
+# 3DPLS (3-Dimensional Probabilistic Landslide Susceptibility) Input Configuration
+# =============================================================================
+#
+# The 3DPLS model evaluates landslide susceptibility on local to regional scale
+# (single slope to 10 km²) and accounts for parameter variability effects on slope stability.
+# The model couples hydrological and slope stability models using:
+# - Iverson's linearized solution for transient pore pressure changes
+# - Extension of Bishop's simplified method to 3D slope stability analysis
+# - Ellipsoidal sliding surface analysis with Monte Carlo simulations
+#
+# Reference: Oguz, E.A., Depina, I. & Thakur, V. Effects of soil heterogeneity
+# on susceptibility of shallow landslides. Landslides 19, 67–83 (2022).
+# =============================================================================
+
+# DIRECTORIES CONFIGURATION
+# =============================================================================
+directories:
+  input_folder: "./03-Input/"                  # Path to input data folder
+  output_folder: "./04-Results/"               # Path to output results folder
+  matrix_storage: "./04-Results/matrices/"     # Path to store matrices
+  gis_data_folder: "./3DPLS/InputData/KvamCaseStudy/"  # Path to GIS ASCII grid files
+
+# GIS INPUT FILES (ASCII grid format)
+# =============================================================================
+gis_files:
+  dem: "dem.asc"                              # Digital elevation model (required)
+  rizero: "rizero.asc"                        # Steady background infiltration in m/s (can be 0 if needed)
+  slope: "slope.asc"                          # Slope angle in degrees (required)
+  zones: "zones.asc"                          # Geological units as integer IDs (required)
+  aspect: "aspect.asc"                        # Aspect in degrees (required)
+  zmax: "zmax.asc"                            # Depth to bedrock in meters (can be calculated using empirical equations)
+  source: "source.asc"                        # Initiation zones for comparison (optional)
+  depthwt: "depthwt.asc"                      # Depth to groundwater table in meters (required)
+  dir: "dir.asc"                              # Direction of groundwater flow (optional)
+
+# GIS CONFIGURATION
+# =============================================================================
+gis_config:
+  nodata_value: -9999                         # NoData value (usually read from GIS files automatically)
+  read_nodata_from_file: true                 # If true, read NoData from file; if false, use nodata_value above
+
+# RAINFALL INPUT DATA
+# =============================================================================
+rainfall:
+  riInp: 7.144e-7                             # Rainfall input data in m/s
+  riInp_duration: 86400                       # Duration for rainfall input in seconds
+
+# MONTE CARLO AND ANALYSIS CONFIGURATION
+# =============================================================================
+monte_carlo:
+  mcnumber: 10                               # 1 for deterministic, 1000+ for probabilistic
+
+analysis:
+  analysis_type: "Drained"                    # Options: "Drained" or "Undrained"
+  fs_calculation_type: "Bishop3D"             # Options: "Normal3D", "Bishop3D", "Janbu3D"
+  random_field_method: "SCMD"                 # "CMD" for smaller zones, "SCMD" for bigger zones (>400 elements)
+  save_mat: "YES"                             # "YES" or "NO" - Save correlation matrix to save time for CMD
+  problem_name: ""                            # Special problem identifier for validation cases
+                                              # Options: "", "Pr1", "Pr2", "Pr3S1Dry", "Pr3S2Dry", "Pr3S2Wet", "SimpCase"
+
+# ZMAX PARAMETERS
+# =============================================================================
+zmax_parameters:
+  zmax_var: "No"                              # "Yes" or "No" - if Yes, mean calculated by function based on slope
+  cov_zmax: 0.3                               # Coefficient of variation for zmax
+  min_zmax: 1.0                               # Minimum zmax value in meters
+
+# NOTE: MULTIPROCESSING CONFIGURATION
+# =============================================================================
+multiprocessing:
+  multiprocessing_option: "S-MP-MP"           # Multiprocessing option
+                                              # Options: "C-SP-SP", "C-MP-SP", "C-MP-MP", "C-MP-MT"
+                                              #          "S-SP-SP", "S-SP-MP", "S-MP-SP", "S-MP-MP"
+
+  # For options "C-XX-XX" (Combined)
+  total_processes_mc: 2                       # Will be utilized if either "C-MP-SP" or "C-MP-MP" run option is selected
+  total_processes_ell: 2                      # Will be utilized if "C-MP-MP" run option is selected
+  total_threads_ell: 2                        # Will be utilized if "C-MP-MT" run option is selected
+
+  # For options "S-XX-XX" (Separate)
+  total_processes_indmc: 5                    # Will be utilized if either "S-SP-MP" or "S-MP-MP" run option is selected
+  total_processes_ellgen: 5                   # Will be utilized if either "S-MP-SP" or "S-MP-MP" run option is selected
+
+# Multiprocessing options explanation:
+# "C-SP-SP": Combined single process (MC + ellipsoid generation)
+# "C-MP-SP": Combined multi-process MC, single process ellipsoid
+# "C-MP-MP": Combined multi-process MC and ellipsoid (recommended when zmax varies)
+# "C-MP-MT": Combined multi-process MC, multi-thread ellipsoid
+# "S-SP-SP": Separate single process
+# "S-SP-MP": Separate single process ellipsoid, multi-process MC
+# "S-MP-SP": Separate multi-process ellipsoid, single process MC
+# "S-MP-MP": Separate multi-process both (recommended when zmax invariant)
+
+
+
+
+# SOIL PARAMETERS BY ZONE
+# =============================================================================
+# For each geological zone, specify mean, coefficient of variation,
+# distribution type, and correlation lengths in X and Y directions ('inf' or a value)
+# Distribution types: "Normal", "Lognormal"
+# =============================================================================
+
+soil_parameters:
+  # Zone 1 parameters (add more zones as needed)
+  zone_1:
+    # Cohesion parameters
+    cohesion:
+      mean_cInp: 5000.0                       # Mean cohesion in Pa
+      cov_cInp: 0.3                           # Coefficient of variation
+      dist_cInp: "Normal"                          # Distribution type
+      corrLenX_cInp: 50.0                     # Correlation length in X direction (m)
+      corrLenY_cInp: 50.0                     # Correlation length in Y direction (m)
+
+    # Friction angle parameters
+    friction_angle:
+      mean_phiInp: 30.0                       # Mean friction angle in degrees
+      cov_phiInp: 0.15                        # Coefficient of variation
+      dist_phiInp: "Lognormal"                       # Distribution type
+      corrLenX_phiInp: 50.0                   # Correlation length in X direction (m)
+      corrLenY_phiInp: 50.0                   # Correlation length in Y direction (m)
+
+    # Unit weight parameters
+    unit_weight:
+      mean_uwsInp: 18000.0                    # Mean unit weight in N/m³
+      cov_uwsInp: 0.1                         # Coefficient of variation
+      dist_uwsInp: "Normal"                        # Distribution type
+      corrLenX_uwsInp: 'inf'                   # Correlation length in X direction (m)
+      corrLenY_uwsInp: 'inf'                   # Correlation length in Y direction (m)
+
+    # Saturated permeability parameters
+    saturated_permeability:
+      mean_kSatInp: 1.0e-6                    # Mean saturated permeability in m/s
+      cov_kSatInp: 0.5                        # Coefficient of variation
+      dist_kSatInp: "Normal"                       # Distribution type
+      corrLenX_kSatInp: 'inf'                  # Correlation length in X direction (m)
+      corrLenY_kSatInp: 'inf'                  # Correlation length in Y direction (m)
+
+    # Diffusivity parameters
+    diffusivity:
+      mean_diffusInp: 1.0e-6                  # Mean diffusivity in m²/s
+      cov_diffusInp: 0.3                      # Coefficient of variation
+      dist_diffusInp: "Lognormal"                    # Distribution type
+      corrLenX_diffusInp: 'inf'                # Correlation length in X direction (m)
+      corrLenY_diffusInp: 'inf'                # Correlation length in Y direction (m)
+
+    # Undrained shear strength (for undrained analysis)
+    undrained_shear_strength:
+      mean_SuInp: 25000.0                     # Mean undrained shear strength in Pa
+      cov_SuInp: 0.3                          # Coefficient of variation
+      dist_SuInp: "Normal"                    # Distribution type, 'N' or 'LN'
+      corrLenX_SuInp: 50.0                    # Correlation length in X direction (m)
+      corrLenY_SuInp: 50.0                    # Correlation length in Y direction (m)
+
+  # Add additional zones as needed (zone_2, zone_3, etc.)
+  # zone_2:
+  #   cohesion:
+  #     mean_cInp: 3000.0
+  #     cov_cInp: 0.4
+  #     ... (repeat structure for each zone)
+
+# ELLIPSOIDAL SLIDING SURFACE PARAMETERS
+# =============================================================================
+ellipsoid:
+  ella: 100.0                                 # Length of ellipsoid semi-axis a in meters
+  ellb: 20.0                                  # Length of ellipsoid semi-axis b in meters
+  ellc: 2.5                                   # Length of ellipsoid semi-axis c in meters
+  ellalpha: 0.0                               # Rotation angle alpha in degrees
+  ellz: 1.0                                   # Depth parameter z in meters
+  ellalpha_calc: "No"                         # "Yes" or "No" - calculate alpha automatically
+
+# INVESTIGATION ZONE AND ANALYSIS PARAMETERS
+# =============================================================================
+investigation:
+  inzone: [[50, 70], [50, 70]]             # Investigation zone for ellipsoidal sliding surfaces
+                                              # Format: [[row_start, row_end], [col_start, col_end]]
+  time_to_analyse: [86400]                        # Time instances to analyze in seconds (array)
+                                              # Examples: [0], [43200], [86400], [0, 43200, 86400]
+                                              # 0 = before rainfall, 86400 = after 24h rainfall
+  sub_dis_num: 0                            # Minimum number of cells inside ellipsoidal sliding surface
+                                              # Suggested: 100-200
+
+# PROJECT IDENTIFICATION
+# =============================================================================
+project:
+  filename: "3DPLS_project"                   # Project name for output files
