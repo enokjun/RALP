@@ -1,4 +1,4 @@
-# Robust Areal Landslide Prediction (RALP) software ver 1.00 (RALP_v1_00)
+# Robust Areal Landslide Prediction (RALP) software ver 1.01 (RALP_v1_01)
 
 The RALP software provides a graphical user interface (GUI) enabling users to select parameters and generate necessary files 
 for performing physically based landslide susceptibility analysis for 3DTSP and 3DPLS.
@@ -9,6 +9,7 @@ However, it requires users to install Python and the necessary libraries.
 For Windows users, it is recommended to download the **"RALP_v1_00_window_setup.exe"** and install it on a local Windows PC. 
 It already contains Python and the libraries required for running 3DTSP and 3DPLS. 
 Therefore, it does not require the users to install and set up the Python environment.
+**Update on the RALP windows version migth be slower, so please check the version**
 
 More details on the installation, RALP manual, and examples are described in the **"Robust Areal Landslide Prediction (RALP) - GUI v1.00 - User Manual.pdf"**.
 

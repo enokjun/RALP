@@ -1,2 +1,2 @@
 #!/bin/bash
-python3 RALP_v1_00.py
+python3 RALP_v1_01.py
