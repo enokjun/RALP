@@ -12,6 +12,7 @@ Therefore, it does not require the users to install and set up the Python enviro
 If for any reason, the software exe file is considered to be dangerous (virus or company system),
 please enable the software or identify the software as safe.
 Otherwise, please use the **start_GUI_windows.bat** file to start the windows-version RALP software.
+
 **Update on the RALP windows version might be slower, so please check the version**
 
 More details on the installation, RALP manual, and examples are described in the **"Robust Areal Landslide Prediction (RALP) - GUI v1.00 - User Manual.pdf"**.
