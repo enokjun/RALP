@@ -19,6 +19,7 @@ More details on the installation, RALP manual, and examples are described in the
 
 # References
 - [3DPLS]	Oguz, EA, Depina I, Thakur V (2022) Effects of soil heterogeneity on susceptibility of shallow landslides. Landslides, 19(1):67-83. https://doi.org/10.1007/s10346-021-01738-x
+- [3DTS] Cheon, E., Ahmet Oguz, E., DiBiagio, A., Piciullo, L., Kwon, T. H., and Lee, S. R. (2025a): A Physically-based 3D Landslide Susceptibility Model for Shallow Translational Landslides using DEM, EGU General Assembly 2025, Vienna, Austria, 27 Apr–2 May 2025, EGU25-17059, https://doi.org/10.5194/egusphere-egu25-17059
 - [3DTS] Cheon E, Oguz EA, DiBiagio A, Piciullo L (2025) A 3D Shallow Translational Landslide Susceptibility Model with DEM Cells Accounting for Side Resistance and Vegetation Effects. The 9th International Symposium for Geotechnical Safety and Risk (ISGSR) at Oslo, Norway. https://doi.org/10.3850/GRF-25280825_isgsr-007-P354-cd
 - [3DTS] Cheon E, Oguz EA, DiBiagio A, Piciullo L (2025) A 3D Shallow Translational Landslide Susceptibility Model Accounting for Side Resistance and Vegetation Effects (under revision)
 
