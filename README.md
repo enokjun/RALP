@@ -22,9 +22,17 @@ More details on the installation, RALP manual, and examples are described in the
 - [3DTS] Cheon E, Oguz EA, DiBiagio A, Piciullo L (2025) A 3D Shallow Translational Landslide Susceptibility Model with DEM Cells Accounting for Side Resistance and Vegetation Effects. The 9th International Symposium for Geotechnical Safety and Risk (ISGSR) at Oslo, Norway. https://doi.org/10.3850/GRF-25280825_isgsr-007-P354-cd
 - [3DTS] Cheon E, Oguz EA, DiBiagio A, Piciullo L (2025) A 3D Shallow Translational Landslide Susceptibility Model Accounting for Side Resistance and Vegetation Effects (under revision)
 
+# Acknowledgement
+- The slope stability models were developed through contributions and comments by **Dr. Emir A. Oguz**, **Amanda DiBiagio**, and **Lica Piciullo**
+- The preparation of the user manual was funded by the basic support and the HUT project provided to Norwegian Geotechnical Institute (NGI) by the Research Council of Norway
+
 # Contact
 - Please email **enok.cheon@ngi.no** if you need to. However, to inform us of any found bugs, software issues, or general feedback, please use the GitHub Issues
 
-# ver 1.01
+# Version
+**ver 1.00**
+- performs combined hydrological infiltration analysis and slope stability analysis with either a deterministic or probabilistic approach for determining landslide geohazard risk with **3DPLS** and **3DTS** models
+
+**ver 1.01**
 - fixed issues when assigning the initial groundwater table using the "thickness above bedrock" option
 - fixed the symbol of initial suction pressure to correctly show $\psi_i$ instead of $\theta_i$, as $\theta_i$ would refer to initial volumetric water content
