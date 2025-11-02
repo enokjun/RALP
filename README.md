@@ -6,7 +6,7 @@ for performing physically based landslide susceptibility analysis for 3DTSP and 
 The repository provides the necessary Python scripts to run the RALP software on Windows, Linux, and Mac OS. 
 However, it requires users to install Python and the necessary libraries.
 
-For Windows users, it is recommended to download the **"RALP_v1_01_window_setup.exe"** and install it on a local Windows PC. 
+For Windows users, it is recommended to download the **"RALP_v1_02_window_setup.exe"** and install it on a local Windows PC. 
 It already includes Python and the libraries required to run 3DTSP and 3DPLS. 
 Therefore, it does not require users to install or set up a Python environment.
 If, for any reason, the software exe file is considered to be dangerous (virus or company system),
@@ -31,9 +31,14 @@ More details on the installation, RALP manual, and examples are described in the
 - Please email **enok.cheon@ngi.no** if you need to. However, to inform us of any found bugs, software issues, or general feedback, please use the GitHub Issues
 
 # Version
-**ver 1.00**
-- performs combined hydrological infiltration analysis and slope stability analysis with either a deterministic or probabilistic approach for determining landslide geohazard risk with **3DPLS** and **3DTS** models
-
+**ver 1.02**
+- fixed issues regarding unit not converted when rainfall intensity is defined from GIS files
+  
 **ver 1.01**
 - fixed issues when assigning the initial groundwater table using the "thickness above bedrock" option
 - fixed the symbol of initial suction pressure to correctly show $\psi_i$ instead of $\theta_i$, as $\theta_i$ would refer to initial volumetric water content
+  
+**ver 1.00**
+- performs combined hydrological infiltration analysis and slope stability analysis with either a deterministic or probabilistic approach for determining landslide geohazard risk with **3DPLS** and **3DTS** models
+
+
