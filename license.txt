@@ -1,6 +1,6 @@
 Authors:       Dr. Enok Cheon (3DTSP and GUI), Dr. Emir A. Oguz (3DPLS)
 Association:   Dept. of Natural Hazards, NGI, Sandakerveien 140, 0484 Oslo
-Date:          Oct 29, 2025
+Date:          Nov 14, 2025
 Purpose:       Robust Areal Landslide Prediction (RALP) - 3DTSP and 3DPLS
 Language:      Python3
 License:       MIT
