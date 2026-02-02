@@ -6,7 +6,7 @@ for performing physically based landslide susceptibility analysis for 3DTSP and 
 The repository provides the necessary Python scripts to run the RALP software on Windows, Linux, and Mac OS. 
 However, it requires users to install Python and the necessary libraries.
 
-For Windows users, it is recommended to download the **"RALP_v1_03_window_setup.exe"** and install it on a local Windows PC. 
+For Windows users, it is recommended to download the **"RALP_v1_04_window_setup.exe"** and install it on a local Windows PC. 
 It already includes Python and the libraries required to run 3DTSP and 3DPLS. 
 Therefore, it does not require users to install or set up a Python environment.
 If, for any reason, the software exe file is considered to be dangerous (virus or company system),
@@ -15,7 +15,7 @@ Otherwise, please use the **start_GUI_windows.bat** file to start the Windows ve
 
 **Update on the RALP windows version might be slower, so please check the version**
 
-More details on the installation, RALP manual, and examples are described in the **"Robust Areal Landslide Prediction (RALP) - GUI v1.03 - User Manual.pdf"**.
+More details on the installation, RALP manual, and examples are described in the **"Robust Areal Landslide Prediction (RALP) - GUI v1.04 - User Manual.pdf"**.
 
 # References
 - [3DPLS]	Oguz, EA, Depina I, Thakur V (2022) Effects of soil heterogeneity on susceptibility of shallow landslides. Landslides, 19(1):67-83. https://doi.org/10.1007/s10346-021-01738-x
@@ -31,6 +31,10 @@ More details on the installation, RALP manual, and examples are described in the
 - Please email **enok.cheon@ngi.no** if you need to. However, to inform us of any found bugs, software issues, or general feedback, please use the GitHub Issues
 
 # Version
+**ver 1.04**
+- fixed issues regarding vegetation root reinforcement model parameter (rate vs scale)
+- fixed incorrect material import using GIS files
+  
 **ver 1.03**
 - fixed issues regarding vegetation weight
 - fixed incorrect plotting of 2D plots
