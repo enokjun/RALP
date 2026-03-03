@@ -1,3 +1,3 @@
 @echo off
-python RALP_v1_04.py
+python RALP_v1_10.py
 exit
