@@ -35,7 +35,7 @@ More details on the installation, RALP manual, and examples are described in the
 **ver 1.10**
 - added post-processing to evaluate the performance of 3DTSP simulation
 - added early termination option to finish the simulation early
-- added another root reinforcement model - DiBiagio et al. (2026)
+- added another root reinforcement model - DiBiagio et al. (under revision)
 - generates results that would be used for runout analysis 
 
 **ver 1.04**
