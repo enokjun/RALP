@@ -6,7 +6,7 @@ for performing physically based landslide susceptibility analysis for 3DTSP and 
 The repository provides the necessary Python scripts to run the RALP software on Windows, Linux, and Mac OS. 
 However, it requires users to install Python and the necessary libraries.
 
-For Windows users, it is recommended to download the **"RALP_v1_10_window_setup.exe"** and install it on a local Windows PC. 
+For Windows users, it is recommended to download the **"RALP_v1_11_window_setup.exe"** and install it on a local Windows PC. 
 It already includes Python and the libraries required to run 3DTSP and 3DPLS. 
 Therefore, it does not require users to install or set up a Python environment.
 If, for any reason, the software exe file is considered to be dangerous (virus or company system),
@@ -15,11 +15,11 @@ Otherwise, please use the **start_GUI_windows.bat** file to start the Windows ve
 
 **Update on the RALP windows version might be slower, so please check the version**
 
-More details on the installation, RALP manual, and examples are described in the **"Robust Areal Landslide Prediction (RALP) - GUI v1.10 - User Manual.pdf"**.
+More details on the installation, RALP manual, and examples are described in the **"Robust Areal Landslide Prediction (RALP) - GUI v1.11 - User Manual.pdf"**.
 
 # References
 - [3DTS] Cheon E, Oguz EA, DiBiagio A, Piciullo L (2026) A 3D Shallow Translational Landslide Susceptibility Model Accounting for Side Resistance and Vegetation Roots. Environmental Modelling & Software. 106977. https://doi.org/10.1016/j.envsoft.2026.106977
-- [3DPLS]	Oguz, EA, Depina I, Thakur V (2022) Effects of soil heterogeneity on susceptibility of shallow landslides. Landslides, 19(1):67-83. https://doi.org/10.1007/s10346-021-01738-x
+- [3DPLS] Oguz, EA, Depina I, Thakur V (2022) Effects of soil heterogeneity on susceptibility of shallow landslides. Landslides, 19(1):67-83. https://doi.org/10.1007/s10346-021-01738-x
 - [3DTS] Cheon, E., Ahmet Oguz, E., DiBiagio, A., Piciullo, L., Kwon, T. H., and Lee, S. R. (2025a): A Physically-based 3D Landslide Susceptibility Model for Shallow Translational Landslides using DEM, EGU General Assembly 2025, Vienna, Austria, 27 Apr–2 May 2025, EGU25-17059, https://doi.org/10.5194/egusphere-egu25-17059
 - [3DTS] Cheon E, Oguz EA, DiBiagio A, Piciullo L (2025) A 3D Shallow Translational Landslide Susceptibility Model with DEM Cells Accounting for Side Resistance and Vegetation Effects. The 9th International Symposium for Geotechnical Safety and Risk (ISGSR) at Oslo, Norway. https://doi.org/10.3850/GRF-25280825_isgsr-007-P354-cd
 - [3DTS] DiBiagio, A., Schwarz, M., Borrajo-Pelaez, R., Ngo, H. M., Cohen, D., Oen, A., Tallaksen, L. M., & Capobianco, V. (under review). Quantifying the spatio-temporal mechanical reinforcement effects of the pioneer species Betula pendula on slope stability: experimental investigations and modelling for a case study in Western Norway. Ecological Engineering. 
@@ -32,6 +32,9 @@ More details on the installation, RALP manual, and examples are described in the
 - Please email **enok.cheon@ngi.no** if you need to. However, to inform us of any found bugs, software issues, or general feedback, please use the GitHub Issues
 
 # Version
+**ver 1.11**
+- corrected bug where "Skip (only perform infiltration)" causing error
+
 **ver 1.10**
 - added post-processing to evaluate the performance of 3DTSP simulation
 - added early termination option to finish the simulation early
