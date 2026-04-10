@@ -377,6 +377,500 @@ def RALP_GUI():
 
 		return None
 
+	######################################
+	## Load YAML into GUI fields
+	######################################
+	def load_yaml_into_gui_command():
+		"""Open a YAML file and populate GUI fields from its contents."""
+		try:
+			if len(input_folder_entry.get()) > 0 and os.path.isdir(input_folder_entry.get()):
+				file_path = input_folder_entry.get()
+			else:
+				file_path = "C:/Users/" + os.getlogin() + '/Documents'
+		except:
+			file_path = "C:/Users/" + os.getlogin() + '/Documents'
+
+		selected_yaml_file = filedialog.askopenfilename(initialdir=file_path,
+							title="Select YAML input file to load into GUI",
+							filetypes=(
+								("input YAML file", "*.yaml"),
+								("input YAML file", "*.yml"),
+							))
+
+		if not selected_yaml_file or not os.path.isfile(selected_yaml_file):
+			return None
+
+		try:
+			with open(selected_yaml_file, 'r') as f:
+				data = yaml.safe_load(f)
+		except Exception as e:
+			status.config(text=f"Error loading YAML: {e}")
+			return None
+
+		if not isinstance(data, dict):
+			status.config(text="Invalid YAML file")
+			return None
+
+		# helper to safely set a tkinter var
+		def safe_set(var, val):
+			if val is not None:
+				try:
+					var.set(val)
+				except:
+					pass
+
+		# helper to set a combobox to match a value from its values list
+		def safe_combo_set(combo_var, value, mapping=None):
+			if value is None:
+				return
+			if mapping and value in mapping:
+				combo_var.set(mapping[value])
+			else:
+				combo_var.set(str(value))
+
+		##############################
+		# project info
+		##############################
+		safe_set(project_name_str, data.get("filename"))
+
+		if data.get("input_folder_path"):
+			input_folder_entry.delete(0, tk.END)
+			ifp = data["input_folder_path"]
+			if ifp != "./":
+				input_folder_entry.insert(0, ifp.rstrip("/"))
+
+		if data.get("output_folder_path"):
+			output_folder_entry.delete(0, tk.END)
+			ofp = data["output_folder_path"]
+			if ofp not in ["./", None]:
+				# strip the project_results suffix if present
+				ofp_clean = ofp.rstrip("/")
+				if ofp_clean.endswith("_results"):
+					ofp_clean = os.path.dirname(ofp_clean)
+				output_folder_entry.insert(0, ofp_clean)
+
+		##############################
+		# output options
+		##############################
+		safe_set(output_format_opt_str, data.get("results_format"))
+		if data.get("generate_plot") is not None:
+			generate_plot_opt_int.set(1 if data["generate_plot"] else 0)
+		safe_set(unit_weight_water_double, data.get("unit_weight_of_water"))
+		safe_set(soil_dz_double, data.get("vertical_spacing"))
+		safe_set(critical_FS_double, data.get("FS_crit"))
+
+		##############################
+		# monte carlo
+		##############################
+		safe_set(mc_iterations_int, data.get("monte_carlo_iteration_max"))
+
+		##############################
+		# CPU
+		##############################
+		if data.get("max_cpu_num") is not None:
+			cpu_n = data["max_cpu_num"]
+			if cpu_n > 1:
+				multi_CPU_method_opt_int.set(1)
+				max_CPU_pool_int.set(cpu_n)
+			else:
+				multi_CPU_method_opt_int.set(0)
+
+		##############################
+		# DEM surface dip for GA
+		##############################
+		if data.get("DEM_surf_dip_infiltration_apply") is not None:
+			surf_dip_for_GA_int.set(1 if data["DEM_surf_dip_infiltration_apply"] else 0)
+
+		##############################
+		# termination
+		##############################
+		if data.get("termination_apply") is not None:
+			early_termination_apply_int.set(1 if data["termination_apply"] else 0)
+		threshold = data.get("landslide_to_debris_flow_threshold", {})
+		if isinstance(threshold, dict):
+			safe_set(early_term_criteria_depth_double, threshold.get("depth"))
+			safe_set(early_term_criteria_area_double, threshold.get("area"))
+			safe_set(early_term_criteria_volume_double, threshold.get("volume"))
+
+		##############################
+		# DEM file
+		##############################
+		safe_set(DEM_filename_str, data.get("DEM_file_name"))
+
+		##############################
+		# slope filenames
+		##############################
+		if data.get("dip_surf_filename") not in [None, "(optional)"]:
+			safe_set(surf_dip_filename_str, data["dip_surf_filename"])
+		if data.get("aspect_surf_filename") not in [None, "(optional)"]:
+			safe_set(surf_aspect_filename_str, data["aspect_surf_filename"])
+		if data.get("dip_base_filename") not in [None, "(optional)"]:
+			safe_set(base_dip_filename_str, data["dip_base_filename"])
+		if data.get("aspect_base_filename") not in [None, "(optional)"]:
+			safe_set(base_aspect_filename_str, data["aspect_base_filename"])
+		safe_set(local_cell_DEM2dip_int, data.get("local_cell_sizes_slope"))
+
+		##############################
+		# debris flow criteria
+		##############################
+		if data.get("DEM_debris_flow_criteria_apply") is not None:
+			debris_flow_criteria_int.set(1 if data["DEM_debris_flow_criteria_apply"] else 0)
+		if data.get("DEM_debris_flow_initiation_filename"):
+			safe_set(debris_flow_criteria_Criteria_str, data["DEM_debris_flow_initiation_filename"])
+		if data.get("DEM_neighbor_directed_graph_filename"):
+			safe_set(debris_flow_criteria_network_str, data["DEM_neighbor_directed_graph_filename"])
+		if data.get("DEM_UCA_filename"):
+			safe_set(debris_flow_criteria_UCA_str, data["DEM_UCA_filename"])
+
+		##############################
+		# landslide inventory
+		##############################
+		if data.get("actual_landslide_inventory_region") not in [None, "(optional)"]:
+			safe_set(landslide_source_filename_str, data["actual_landslide_inventory_region"])
+
+		##############################
+		# infiltration model
+		##############################
+		infil_method = data.get("infiltration_model")
+		if infil_method == "Iverson":
+			infil_model_str.set("Iverson")
+		else:
+			infil_model_str.set("Green-Ampt")
+
+		##############################
+		# SWCC model
+		##############################
+		swcc = data.get("material", {})
+		if isinstance(swcc, dict):
+			for mID_str, mval in swcc.items():
+				if isinstance(mval, dict) and "hydraulic" in mval:
+					swcc_val = mval["hydraulic"].get("SWCC_model")
+					if swcc_val == "FX":
+						SWCC_model_str.set("Fredlund and Xing (1994)")
+					elif swcc_val == "vG":
+						SWCC_model_str.set("van Genuchten (1980)")
+					break
+
+		##############################
+		# slope model
+		##############################
+		fs_method = data.get("FS_analysis_method")
+		if fs_method is None:
+			slope_model_str.set("Skip (only perform infiltration)")
+		elif fs_method == "infinite":
+			slope_model_str.set("Infinite Slope")
+		elif fs_method in ["3D Janbu", "3D Translational Slide (3DTS)"]:
+			slope_model_str.set("3D Translational Slide (3DTS)")
+		elif fs_method in ["3D Normal", "3D Bishop"]:
+			slope_model_str.set(fs_method)
+
+		# 3DTS-specific
+		safe_set(min_cell_3DTS_int, data.get("cell_size_3DFS_min"))
+		safe_set(max_cell_3DTS_int, data.get("cell_size_3DFS_max"))
+		if data.get("superellipse_power") is not None:
+			sp = data["superellipse_power"]
+			if isinstance(sp, list):
+				superellipse_power_3DTS_str.set(", ".join(str(v) for v in sp))
+			else:
+				superellipse_power_3DTS_str.set(str(sp))
+		if data.get("superellipse_eccentricity_ratio") is not None:
+			se = data["superellipse_eccentricity_ratio"]
+			if isinstance(se, list):
+				superellipse_eccen_ratio_3DTS_str.set(", ".join(str(v) for v in se))
+			else:
+				superellipse_eccen_ratio_3DTS_str.set(str(se))
+		if data.get("apply_side_resistance_3D") is not None:
+			side_resistance_3DTS_int.set(1 if data["apply_side_resistance_3D"] else 0)
+
+		##############################
+		# root reinforcement model
+		##############################
+		if data.get("apply_root_resistance_3D") is True:
+			# determine model from material data
+			mat_dict = data.get("material", {})
+			for mID_str, mval in mat_dict.items():
+				if isinstance(mval, dict) and "root" in mval:
+					root_m = mval["root"].get("model")
+					if root_m == "constant":
+						root_reinforced_model_str.set("Constant with Depth")
+					elif root_m == "van Zadelhoff et al. (2021)":
+						root_reinforced_model_str.set("van Zadelhoff et al. (2021)")
+					elif root_m == "DiBiagio et al. (2026)":
+						root_reinforced_model_str.set("DiBiagio et al. (2026)")
+					break
+		elif data.get("apply_root_resistance_3D") is False:
+			root_reinforced_model_str.set("None")
+
+		##############################
+		# rainfall
+		##############################
+		safe_set(rainfall_intensity_unit_str, data.get("rain_unit"))
+		safe_set(rainfall_time_sudiv_int, data.get("dt_iteration"))
+
+		rain_hist = data.get("rainfall_history", [])
+		if isinstance(rain_hist, list):
+			# determine type from first entry's intensity value
+			if len(rain_hist) > 0:
+				sample_val = rain_hist[0][2] if len(rain_hist[0]) >= 3 else None
+				if isinstance(sample_val, str):
+					rainfall_history_opt_str.set("GIS file")
+				elif isinstance(sample_val, list):
+					if len(sample_val) > 0 and len(sample_val[0]) > 3:
+						rainfall_history_opt_str.set("Probabilistic Rainfall Gauge")
+					else:
+						rainfall_history_opt_str.set("Deterministic Rainfall Gauge")
+				else:
+					rainfall_history_opt_str.set("Uniform")
+
+			for idx, entry in enumerate(rain_hist):
+				t = idx + 1
+				if t > 100:
+					break
+				if len(entry) >= 3:
+					rain_hist_t_dict[t][0].set(entry[0])  # start time
+					rain_hist_t_dict[t][1].set(entry[1])  # end time
+					intensity = entry[2]
+					if isinstance(intensity, (int, float)):
+						rain_hist_t_dict[t][2][0].set(intensity)
+					elif isinstance(intensity, str):
+						rain_hist_t_dict[t][2][1].set(intensity)
+					elif isinstance(intensity, list):
+						for g_idx, gauge in enumerate(intensity):
+							if g_idx >= 5:
+								break
+							for p_idx, p_val in enumerate(gauge):
+								if p_idx < len(rain_hist_t_dict[t][2][2][g_idx]):
+									rain_hist_t_dict[t][2][2][g_idx][p_idx].set(p_val)
+
+		##############################
+		# ET parameters (widgets may not exist yet)
+		##############################
+		try:
+			et_unit = data.get("ET_unit")
+			et_hist = data.get("ET_history")
+			fc_suction = data.get("field_capacity_suction")
+
+			if et_unit is not None and et_hist is not None:
+				ET_history_opt_str.set("Uniform")  # default, will be overridden below
+				safe_set(ET_intensity_unit_str, et_unit)
+				safe_set(field_capacity_suction_double, fc_suction)
+
+				if isinstance(et_hist, list):
+					for idx, entry in enumerate(et_hist):
+						t = idx + 1
+						if t > 100:
+							break
+						if len(entry) >= 3:
+							ET_hist_t_dict[t][0].set(entry[0])
+							ET_hist_t_dict[t][1].set(entry[1])
+							if isinstance(entry[2], str):
+								ET_history_opt_str.set("GIS file")
+								ET_hist_t_dict[t][3].set(entry[2])
+							else:
+								ET_hist_t_dict[t][2].set(entry[2])
+			else:
+				ET_history_opt_str.set("None")
+		except NameError:
+			pass  # ET widgets not yet added to GUI
+
+		##############################
+		# soil depth
+		##############################
+		soil_d = data.get("soil_depth_data")
+		if isinstance(soil_d, list) and len(soil_d) >= 2:
+			if soil_d[0] == "uniform":
+				soil_depth_opt_str.set("Uniform Depth")
+				uniform_soil_depth_double.set(soil_d[1])
+			elif soil_d[0] == "GIS":
+				soil_depth_opt_str.set("GIS file")
+				GIS_soil_depth_str.set(soil_d[1])
+			elif "Holm" in str(soil_d[0]):
+				soil_depth_opt_str.set("Holm (2012) & Edvarson (2013)")
+				if len(soil_d) >= 3:
+					min_soil_depth_double.set(soil_d[1])
+					max_soil_depth_double.set(soil_d[2])
+			elif "multiregression" in str(soil_d[0]).lower():
+				if "linear" in str(soil_d[1]).lower() if len(soil_d) > 1 else False:
+					soil_depth_opt_str.set("Linear Multiregression")
+				elif "power" in str(soil_d[1]).lower() if len(soil_d) > 1 else False:
+					soil_depth_opt_str.set("Power Multiregression")
+				if len(soil_d) >= 5:
+					min_soil_depth_double.set(soil_d[2])
+					max_soil_depth_double.set(soil_d[3])
+					gen_reg_intercept_double.set(soil_d[4])
+				# regression parameters [filename, coeff] pairs
+				param_vars = [
+					(gen_reg_param1_filename_str, gen_reg_param1_double),
+					(gen_reg_param2_filename_str, gen_reg_param2_double),
+					(gen_reg_param3_filename_str, gen_reg_param3_double),
+					(gen_reg_param4_filename_str, gen_reg_param4_double),
+					(gen_reg_param5_filename_str, gen_reg_param5_double),
+					(gen_reg_param6_filename_str, gen_reg_param6_double),
+					(gen_reg_param7_filename_str, gen_reg_param7_double),
+					(gen_reg_param8_filename_str, gen_reg_param8_double),
+					(gen_reg_param9_filename_str, gen_reg_param9_double),
+					(gen_reg_param10_filename_str, gen_reg_param10_double),
+				]
+				for p_idx, item in enumerate(soil_d[5:]):
+					if p_idx < len(param_vars) and isinstance(item, list) and len(item) >= 2:
+						param_vars[p_idx][0].set(item[0])
+						param_vars[p_idx][1].set(item[1])
+
+		# probabilistic soil depth
+		soil_d_prob = data.get("soil_depth_probabilistic")
+		if isinstance(soil_d_prob, list) and len(soil_d_prob) >= 2:
+			soil_depth_probabilistic_check_int.set(1)
+			soil_depth_probabilistic_cov.set(soil_d_prob[0])
+
+		##############################
+		# groundwater
+		##############################
+		gw_model = data.get("ground_water_model")
+		gw_data = data.get("ground_water_data")
+		gw_model_map = {
+			"thickness above bedrock": "Thickness Above Bedrock",
+			"depth from surface": "Depth From Surface",
+			"% of soil thickness above bedrock": "% of Soil Thickness Above Bedrock",
+			"% of soil thickness from surface": "% of Soil Thickness From Surface",
+			"GWT elevation GIS": "GWT elevation GIS",
+		}
+		if gw_model is not None:
+			for k, v in gw_model_map.items():
+				if k.lower() == str(gw_model).lower():
+					groundwater_opt_str.set(v)
+					break
+		if gw_data is not None:
+			if isinstance(gw_data, str):
+				gwt_GIS_filename_str.set(gw_data)
+			elif isinstance(gw_data, (int, float)):
+				gwt_value_double.set(gw_data)
+
+		##############################
+		# material (deterministic — mat ID 1)
+		##############################
+		mat_file = data.get("material_file_name")
+		mat_dict = data.get("material", {})
+		mat_gis = data.get("material_GIS", {})
+
+		if mat_file is None:
+			mat_assign_opt_str.set("Uniform")
+		elif mat_file == "GIS":
+			mat_assign_opt_str.set("GIS files")
+		else:
+			mat_assign_opt_str.set("Zone-Based")
+			mat_zone_filename_str.set(mat_file)
+
+		# load per-material-ID data
+		if isinstance(mat_dict, dict):
+			for mID_str, mval in mat_dict.items():
+				try:
+					mID = int(mID_str)
+				except:
+					continue
+				if mID < 1 or mID > 10 or not isinstance(mval, dict):
+					continue
+
+				hyd = mval.get("hydraulic", {})
+				soil = mval.get("soil", {})
+				root = mval.get("root", {})
+
+				# helper to set material property (scalar or probabilistic list)
+				def set_mat_prop(key, val):
+					if val is None:
+						return
+					prop = mat_data_dict[mID].get(key)
+					if prop is None:
+						return
+					if isinstance(val, list):
+						for i, v in enumerate(val):
+							if i < len(prop) and v is not None:
+								try:
+									prop[i].set(v)
+								except:
+									prop[i].set(str(v))
+					elif isinstance(val, (int, float)):
+						prop[0].set(val)
+
+				# hydraulic properties
+				hyd_map = {
+					"k_sat": "hydraulic_k_sat",
+					"initial_suction": "hydraulic_initial_suction",
+					"SWCC_a": "hydraulic_SWCC_a",
+					"SWCC_n": "hydraulic_SWCC_n",
+					"SWCC_m": "hydraulic_SWCC_m",
+					"theta_sat": "hydraulic_theta_sat",
+					"theta_residual": "hydraulic_theta_residual",
+					"soil_m_v": "hydraulic_soil_m_v",
+					"max_surface_storage": "hydraulic_max_surface_storage",
+					"diffusivity": "hydraulic_diffusivity",
+				}
+				for yaml_key, gui_key in hyd_map.items():
+					set_mat_prop(gui_key, hyd.get(yaml_key))
+
+				# soil properties
+				soil_map = {
+					"unit_weight": "soil_unit_weight",
+					"phi": "soil_phi",
+					"phi_b": "soil_phi_b",
+					"c": "soil_c",
+				}
+				for yaml_key, gui_key in soil_map.items():
+					set_mat_prop(gui_key, soil.get(yaml_key))
+
+				# root properties
+				if isinstance(root, dict):
+					vaw = root.get("veg_areal_weight")
+					if vaw is not None:
+						mat_data_dict[mID]["veg_areal_weight"][0].set(vaw)
+
+					root_model = root.get("model")
+					params = root.get("parameters", [])
+					if root_model == "constant" and isinstance(params, list) and len(params) >= 3:
+						mat_data_dict[mID]["root_c_base"][0].set(params[0])
+						mat_data_dict[mID]["root_c_side"][0].set(params[1])
+						mat_data_dict[mID]["root_root_depth"][0].set(params[2])
+					elif root_model == "van Zadelhoff et al. (2021)" and isinstance(params, list) and len(params) >= 3:
+						mat_data_dict[mID]["root_alpha2"][0].set(params[0])
+						mat_data_dict[mID]["root_beta2"][0].set(params[1])
+						mat_data_dict[mID]["root_RR_max"][0].set(params[2])
+					elif root_model == "DiBiagio et al. (2026)" and isinstance(params, list) and len(params) >= 7:
+						mat_data_dict[mID]["root_gamma"][0].set(params[0])
+						mat_data_dict[mID]["root_alpha1"][0].set(params[1])
+						mat_data_dict[mID]["root_beta1"][0].set(params[2])
+						mat_data_dict[mID]["root_DBH"][0].set(params[3])
+						mat_data_dict[mID]["root_d_tri"][0].set(params[4])
+						mat_data_dict[mID]["root_alpha2"][0].set(params[5])
+						mat_data_dict[mID]["root_beta2"][0].set(params[6])
+
+		# GIS material
+		if isinstance(mat_gis, dict):
+			gis_map = {
+				"k_sat": "hydraulic_k_sat",
+				"initial_suction": "hydraulic_initial_suction",
+				"SWCC_model": "hydraulic_SWCC_model",
+				"SWCC_a": "hydraulic_SWCC_a",
+				"SWCC_n": "hydraulic_SWCC_n",
+				"SWCC_m": "hydraulic_SWCC_m",
+				"theta_sat": "hydraulic_theta_sat",
+				"theta_residual": "hydraulic_theta_residual",
+				"soil_m_v": "hydraulic_soil_m_v",
+				"max_surface_storage": "hydraulic_max_surface_storage",
+				"unit_weight": "soil_unit_weight",
+				"phi": "soil_phi",
+				"phi_b": "soil_phi_b",
+				"c": "soil_c",
+				"veg_areal_weight": "veg_areal_weight",
+				"root_c_base": "root_c_base",
+				"root_c_side": "root_c_side",
+				"root_root_depth": "root_root_depth",
+			}
+			for yaml_key, gui_key in gis_map.items():
+				if yaml_key in mat_gis and gui_key in mat_data_GIS_dict:
+					mat_data_GIS_dict[gui_key].set(mat_gis[yaml_key])
+
+		status.config(text=f"YAML loaded: {os.path.basename(selected_yaml_file)}")
+		return None
+
 	# select folder directory for input data
 	def open_input_folder_command():
 
@@ -7814,9 +8308,12 @@ def RALP_GUI():
 	overall_input_folder_entry = tk.Entry(GUI_frame, width=10, bd=3, font=("Arial", 12), textvariable=overall_input_folder_str) 
 	overall_input_folder_button = tk.Button(GUI_frame, text="Select File", width=8, height=1, padx=10, pady=5, font=("Arial", 12), command=open_overall_input_JSON_YAML_file_command) 
 
+	load_yaml_button = tk.Button(GUI_frame, text="Load YAML", width=10, height=1, padx=10, pady=5, font=("Arial", 12), command=load_yaml_into_gui_command)
+
 	overall_input_folder_label.grid(row=3, column=0, columnspan=1, padx=5, pady=(0,5), sticky="w")
 	overall_input_folder_button.grid(row=3, column=1, columnspan=1, padx=5, pady=5)
-	overall_input_folder_entry.grid(row=3, column=2, columnspan=6, padx=5, pady=5, sticky="we")
+	overall_input_folder_entry.grid(row=3, column=2, columnspan=5, padx=5, pady=5, sticky="we")
+	load_yaml_button.grid(row=3, column=7, columnspan=1, padx=5, pady=5)
 
 	######################################
 	## project name
