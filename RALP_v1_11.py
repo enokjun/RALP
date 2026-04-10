@@ -431,23 +431,30 @@ def RALP_GUI():
 		##############################
 		# project info
 		##############################
+		yaml_dir = os.path.dirname(os.path.abspath(selected_yaml_file))
+
 		safe_set(project_name_str, data.get("filename"))
 
 		if data.get("input_folder_path"):
 			input_folder_entry.delete(0, tk.END)
 			ifp = data["input_folder_path"]
-			if ifp != "./":
-				input_folder_entry.insert(0, ifp.rstrip("/"))
+			if ifp in ["./", ".\\"]:
+				ifp = yaml_dir
+			else:
+				ifp = os.path.normpath(os.path.join(yaml_dir, ifp))
+			input_folder_entry.insert(0, ifp)
 
 		if data.get("output_folder_path"):
 			output_folder_entry.delete(0, tk.END)
 			ofp = data["output_folder_path"]
-			if ofp not in ["./", None]:
+			if ofp in ["./", ".\\"]:
+				ofp = yaml_dir
+			else:
+				ofp = os.path.normpath(os.path.join(yaml_dir, ofp))
 				# strip the project_results suffix if present
-				ofp_clean = ofp.rstrip("/")
-				if ofp_clean.endswith("_results"):
-					ofp_clean = os.path.dirname(ofp_clean)
-				output_folder_entry.insert(0, ofp_clean)
+				if ofp.endswith("_results"):
+					ofp = os.path.dirname(ofp)
+			output_folder_entry.insert(0, ofp)
 
 		##############################
 		# output options
