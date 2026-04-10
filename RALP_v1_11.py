@@ -249,7 +249,7 @@ def RALP_GUI():
 
 	root.title("Robust Areal Landslide Prediction (RALP) v1.11")    # S/W title
 	root.call('wm', 'iconphoto', root._w, tk.PhotoImage(file='NGI_logo_cropped.png'))     # icon
-	root.geometry("1995x935")            # window size - when need to fix 
+	root.geometry("1995x1020")            # window size - when need to fix 
 
 	###########################################################################
 	## mainframe, canvas and scrollbar
@@ -277,7 +277,7 @@ def RALP_GUI():
 	# root.resizable(width=False, height=False)
 
 	# set maxium and minimum size GUI can become
-	root.maxsize(2000, 1000)
+	root.maxsize(2000, 1100)
 	root.minsize(650, 500)
 
 	#################################
@@ -8644,7 +8644,7 @@ def RALP_GUI():
 	## Column 1 and 2 separator
 	######################################
 	separator_col1_col2 = ttk.Separator(GUI_frame, orient='vertical')
-	separator_col1_col2.grid(row=0, column=8, rowspan=19, padx=1, pady=5, sticky="ns")
+	separator_col1_col2.grid(row=0, column=8, rowspan=21, padx=1, pady=5, sticky="ns")
 
 	######################################
 	# Section Title - topographic inputs
@@ -9119,7 +9119,7 @@ def RALP_GUI():
 	## Column 2 and 3 separator
 	######################################
 	separator_col2_col3 = ttk.Separator(GUI_frame, orient='vertical')
-	separator_col2_col3.grid(row=0, column=17, rowspan=19, padx=1, pady=5, sticky="ns")
+	separator_col2_col3.grid(row=0, column=17, rowspan=21, padx=1, pady=5, sticky="ns")
 
 	############################################################################
 	## Landslide Susceptibility Header
@@ -9713,7 +9713,7 @@ def RALP_GUI():
 	## status
 	#################################
 	status = tk.Label(GUI_frame, text="", bd=1, relief='sunken', anchor="e", font=("Arial", 12))
-	status.grid(row=19, column=0, columnspan=26, sticky="we")
+	status.grid(row=21, column=0, columnspan=26, sticky="we")
 
 	###########################################################################
 	## GUI operation
