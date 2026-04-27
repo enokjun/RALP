@@ -3472,14 +3472,15 @@ def SWCC_vG_kr(psi, a, m, n=None):
 		inv_a = 1/a  
 	return (np.power(1 - np.power(inv_a*psi, n-1)*np.power(1 + np.power(inv_a*psi, n), -m), 2)/np.sqrt(1 + np.power(inv_a*psi, n)))
 
-# compute wetting front suction head (psi_r) - Mein and Farrel (1974); Swartzendruber (1987)
+# compute wetting front suction (psi_r) in kPa - Mein and Farrel (1974); Swartzendruber (1987)
+# psi_r = integral of k_r(psi) from 0 to psi_i, where psi is in kPa
+# Result is the effective wetting front suction pressure in kPa
 def SWCC_vG_psi_r(psi_i, a, m, int_num=200, n=None, gamma_w=9.81):
 	if n is None:
 		n = 1/(1-m)
 	psi_values = np.linspace(0, psi_i, int_num)
 	k_r_values = SWCC_vG_kr(psi_values, a, m, n=n)
-	psi_f_head = abs(float(np.trapz(k_r_values, x=psi_values)))   # residual suction head at the wetting front
-	psi_f = psi_f_head*gamma_w     # residual suction pressure
+	psi_f = abs(float(np.trapz(k_r_values, x=psi_values)))   # wetting front suction pressure (kPa)
 	return psi_f
 
 ####################
@@ -3566,12 +3567,13 @@ def SWCC_FX_kr(psi, a, n, m, theta_s, C_r=1500, m_v=0, int_num=200):
 
 	return kr
 
-# compute wetting front suction head (psi_r) - Mein and Farrel (1974); Swartzendruber (1987)
+# compute wetting front suction (psi_r) in kPa - Mein and Farrel (1974); Swartzendruber (1987)
+# psi_r = integral of k_r(psi) from 0 to psi_i, where psi is in kPa
+# Result is the effective wetting front suction pressure in kPa
 def SWCC_FX_psi_r(psi_i, a, n, m, theta_s, C_r=1500, m_v=0, int_num=200, gamma_w=9.81):
 	psi_values = np.linspace(0, psi_i, int_num)
 	k_r_values = SWCC_FX_kr(psi_values, a, n, m, theta_s, C_r=C_r, m_v=m_v, int_num=int_num)
-	psi_f_head = abs(float(np.trapz(k_r_values, x=psi_values)))   # residual suction head at the wetting front
-	psi_f = psi_f_head*gamma_w     # residual suction pressure
+	psi_f = abs(float(np.trapz(k_r_values, x=psi_values)))   # wetting front suction pressure (kPa)
 	return psi_f
 
 ####################
