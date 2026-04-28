@@ -104,6 +104,20 @@ rainfall_history:
   - [4, 6, 0.05]  
 dt_iteration: 1  # subdivision between start time and end time for each lines of rainfall history
 
+# evapotranspiration (ET) - optional
+# if not specified or null, ET = 0 (no evapotranspiration)
+ET_unit: null  # unit for ET rate - same format as rain_unit: "(length)/(time)": length = {mm, cm, m}; time = {s, min, hr, day}. e.g. "mm/day"
+# series of [ [start time, end time, ET rate], ...]
+# ET rate information can be:
+# 1) value uniformly applied everywhere. format = int or float
+# 2) filename of GIS that provide spatially varying ET rate. format = string (must contain the file extension)
+# NOTE: ET time intervals should align with the same time axis as rainfall_history
+ET_history: null
+# field capacity suction (kPa) - used to compute volumetric water content at field capacity (theta_FC) from SWCC
+# ET is linearly reduced when soil moisture drops below theta_FC toward theta_residual
+# typical value ~ 33 kPa for most soils
+field_capacity_suction: 33.0
+
 # accepts csv, surfer grid, ASCII asc, LiDAR las filesmats for all DEM/grid info
 
 # DEM file and local region

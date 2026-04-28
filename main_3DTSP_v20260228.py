@@ -3067,7 +3067,7 @@ def generate_groundwater_GIS_data(input_folder_path, ground_water_model, ground_
 ###########################################################################
 ## DEM resolution change 
 ###########################################################################
-def generate_t0_GA_pond_parameters(monte_carlo_iteration_max, monte_carlo_iter_filename_dict, output_folder_path, filename, DEM_soil_thickness, dip_surf, DEM_noData, nodata_value, gridUniqueX, gridUniqueY, deltaX, deltaY, XYZ_row_or_col_increase_first, DEM_surf_dip_infiltration_apply, plot_option, cpu_num, dz, dx_dp, dy_dp, theta_dp, press_dp, cumul_dp, dz_dp, t_dp):
+def generate_t0_GA_pond_parameters(monte_carlo_iteration_max, monte_carlo_iter_filename_dict, output_folder_path, filename, DEM_soil_thickness, dip_surf, DEM_noData, nodata_value, gridUniqueX, gridUniqueY, deltaX, deltaY, XYZ_row_or_col_increase_first, DEM_surf_dip_infiltration_apply, plot_option, cpu_num, dz, dx_dp, dy_dp, theta_dp, press_dp, cumul_dp, dz_dp, t_dp, field_capacity_suction=33.0):
 	"""generate parameters for Green-Ampt model for ponding at time step = 0
 
 	Parameters
@@ -3120,6 +3120,8 @@ def generate_t0_GA_pond_parameters(monte_carlo_iteration_max, monte_carlo_iter_f
 		decimal points (precision) of the vertical grid spacing
 	t_dp : int
 		decimal points (precision) of the time step
+	field_capacity_suction : float
+		suction at field capacity in kPa (default=33.0), used to compute theta_FC for ET
 
 	Returns
 	-------
@@ -3179,6 +3181,16 @@ def generate_t0_GA_pond_parameters(monte_carlo_iteration_max, monte_carlo_iter_f
 			T_p[i,j] = T_p_0
 			T_pp[i,j] = T_pp_0
 
+		# compute theta_FC (volumetric water content at field capacity) for ET coupling
+		theta_FC = np.zeros(DEM_base.shape)
+		for (i,j) in itertools.product(range(len(gridUniqueY)), range(len(gridUniqueX))):
+			if DEM_soil_thickness[i,j] <= dz or DEM_noData[i,j] == 0:
+				continue
+			if DEM_SWCC_model[i,j] == 1:  # Fredlund and Xing (1994)
+				theta_FC[i,j] = float(SWCC_FX_theta(field_capacity_suction, DEM_SWCC_a[i,j], DEM_SWCC_n[i,j], DEM_SWCC_m[i,j], DEM_theta_sat[i,j], m_v=DEM_soil_m_v[i,j], C_r=1500))
+			elif DEM_SWCC_model[i,j] == 0:  # van Genuchten (1980)
+				theta_FC[i,j] = float(SWCC_vG_theta(field_capacity_suction, DEM_SWCC_a[i,j], DEM_SWCC_m[i,j], DEM_theta_sat[i,j], DEM_theta_residual[i,j], n=DEM_SWCC_n[i,j]))
+
 		# plot
 		if os.path.exists(f"{output_folder_path}iteration_{iter_num}/material/{filename} - theta_initial - i{iter_num}.html") == False and plot_option:
 			plot_DEM_mat_map_v8_0(f"{output_folder_path}iteration_{iter_num}/material/", f"{filename} - theta_initial - i{iter_num}", 'theta_i', gridUniqueX, gridUniqueY, None, theta_initial, contour_limit=None, open_html=False, layout_width=1000, layout_height=1000)
@@ -3203,6 +3215,7 @@ def generate_t0_GA_pond_parameters(monte_carlo_iteration_max, monte_carlo_iter_f
 		generate_output_GIS(output_txt_format, f"{output_folder_path}iteration_{iter_num}/material/", filename, "z_p", z_p, DEM_noData, nodata_value, gridUniqueX, gridUniqueY, deltaX, deltaY, XYZ_row_or_col_increase_first, dx_dp, dy_dp, dz_dp, time=None, iteration=iter_num)
 		generate_output_GIS(output_txt_format, f"{output_folder_path}iteration_{iter_num}/material/", filename, "T_p", T_p, DEM_noData, nodata_value, gridUniqueX, gridUniqueY, deltaX, deltaY, XYZ_row_or_col_increase_first, dx_dp, dy_dp, t_dp, time=None, iteration=iter_num)
 		generate_output_GIS(output_txt_format, f"{output_folder_path}iteration_{iter_num}/material/", filename, "T_pp", T_pp, DEM_noData, nodata_value, gridUniqueX, gridUniqueY, deltaX, deltaY, XYZ_row_or_col_increase_first, dx_dp, dy_dp, t_dp, time=None, iteration=iter_num)
+		generate_output_GIS(output_txt_format, f"{output_folder_path}iteration_{iter_num}/material/", filename, "theta_FC", theta_FC, DEM_noData, nodata_value, gridUniqueX, gridUniqueY, deltaX, deltaY, XYZ_row_or_col_increase_first, dx_dp, dy_dp, theta_dp, time=None, iteration=iter_num)
 
 		# export data filename into dictionary
 		temp_dict = monte_carlo_iter_filename_dict["iterations"][str(iter_num)]["material"]["hydraulic"]
@@ -3213,6 +3226,7 @@ def generate_t0_GA_pond_parameters(monte_carlo_iteration_max, monte_carlo_iter_f
 		temp_dict["z_p"] = [f"{output_folder_path}iteration_{iter_num}/material/", f"{filename} - z_p - i{iter_num}.{output_txt_format}"]
 		temp_dict["T_p"] = [f"{output_folder_path}iteration_{iter_num}/material/", f"{filename} - T_p - i{iter_num}.{output_txt_format}"]
 		temp_dict["T_pp"] = [f"{output_folder_path}iteration_{iter_num}/material/", f"{filename} - T_pp - i{iter_num}.{output_txt_format}"]
+		temp_dict["theta_FC"] = [f"{output_folder_path}iteration_{iter_num}/material/", f"{filename} - theta_FC - i{iter_num}.{output_txt_format}"]
 		monte_carlo_iter_filename_dict["iterations"][str(iter_num)]["material"]["hydraulic"] = deepcopy(temp_dict)
 		del temp_dict
 	
@@ -3767,12 +3781,17 @@ def GA_F_slanted_iter_noF0comp_timePondingDuring(t_all, F0, S0, t0, tp, tpp, rai
 
 def compute_GA_nonUniRain_slanted_MP(compute_GA_slanted_nonUniRain_input):
 	
-	i, j, z_top, z_bottom, z_length, infil_zw_pre, wetting_front_z_pre, gwt_z_pre, rain_I, k_sat_z, cur_t, dt, T_p, T_pp, delta_theta, psi_r_head, infil_cumul_F_pre, slope_beta_deg, P_pre, S_pre, RO_pre, infil_rate_f_pre, S_max, cumul_dp, t_dp, rate_dp, dz_dp = compute_GA_slanted_nonUniRain_input
+	i, j, z_top, z_bottom, z_length, infil_zw_pre, wetting_front_z_pre, gwt_z_pre, rain_I, k_sat_z, cur_t, dt, T_p, T_pp, delta_theta, psi_r_head, infil_cumul_F_pre, slope_beta_deg, P_pre, S_pre, RO_pre, infil_rate_f_pre, S_max, cumul_dp, t_dp, rate_dp, dz_dp, ET_rate, theta_FC, theta_residual, theta_sat, ET_cumul_pre = compute_GA_slanted_nonUniRain_input
 	'''
 	rate_dp 	# rate - f, I
 	t_dp    	# time
 	cumul_dp    # F, S, RO, P 
 	dz_dp 		# vertical size 
+	ET_rate     # potential ET rate (m/s)
+	theta_FC    # volumetric water content at field capacity
+	theta_residual  # residual volumetric water content
+	theta_sat   # saturated volumetric water content
+	ET_cumul_pre    # cumulative actual ET from previous time step (m)
 	'''
 
 	## check whether the infiltration situation is ponding or not at the cur_t
@@ -3957,6 +3976,65 @@ def compute_GA_nonUniRain_slanted_MP(compute_GA_slanted_nonUniRain_input):
 		# RO_change = P_change - F_change(=0) - S_change
 		RO_new = RO_pre + max(P_change - S_change, 0)
 
+	#############################
+	## Evapotranspiration (ET) post-processing
+	#############################
+	ET_demand = ET_rate * dt
+	ET_actual = 0.0
+
+	if ET_demand > 0:
+		# Step 1: Extract ET from surface storage first
+		ET_from_S = min(ET_demand, S_new)
+		S_new -= ET_from_S
+		ET_actual += ET_from_S
+		ET_remaining = ET_demand - ET_from_S
+
+		# Step 2: Extract ET from soil moisture (saturated zone near surface)
+		if ET_remaining > 0 and theta_sat > theta_residual:
+			# Estimate current average soil moisture
+			# saturated depth = gwt_z_new - z_bottom (above bedrock, below GWT is saturated)
+			# wetting front depth from surface = infil_zw_new (saturated from top)
+			saturated_from_top = infil_zw_new  # depth of wetting front from surface
+			saturated_from_bottom = max(gwt_z_new - z_bottom, 0)  # GWT height above bedrock
+			total_saturated_depth = min(saturated_from_top + saturated_from_bottom, z_length)
+
+			if total_saturated_depth > 0:
+				theta_current = theta_residual + (theta_sat - theta_residual) * (total_saturated_depth / z_length)
+			else:
+				theta_current = theta_residual
+
+			# Linear moisture limiting factor
+			if theta_current >= theta_FC:
+				K_s = 1.0
+			elif theta_current > theta_residual:
+				K_s = (theta_current - theta_residual) / (theta_FC - theta_residual)
+			else:
+				K_s = 0.0
+
+			# Available water in soil that can be removed by ET
+			# Use actual extractable water in saturated zone, not just cumulative infiltration
+			# (infil_cumul_F can deplete to 0 while soil below gwt still holds water)
+			available_water = max(total_saturated_depth * (theta_sat - theta_residual), 0)
+
+			ET_soil = min(ET_remaining * K_s, available_water)
+			ET_actual += ET_soil
+
+			# Lower GWT by ET_soil / theta_sat
+			if theta_sat > 0:
+				gwt_z_drop = ET_soil / theta_sat
+				gwt_z_new = max(gwt_z_new - gwt_z_drop, z_bottom)
+
+			# Reduce cumulative infiltration
+			infil_cumul_F_new = max(infil_cumul_F_new - ET_soil, 0)
+
+			# Recede wetting front if ET_soil removed water from the infiltrated zone
+			if delta_theta > 0 and infil_zw_new > 0:
+				zw_reduction = ET_soil / delta_theta
+				infil_zw_new = max(infil_zw_new - zw_reduction, 0)
+				wetting_front_z_new = z_top - infil_zw_new
+
+	ET_cumul_new = ET_cumul_pre + ET_actual
+
 	# rounding to nearest tolerance number - avoid floating point error
 	P_new = round(P_new, cumul_dp)
 	S_new = round(S_new, cumul_dp)
@@ -3966,8 +4044,9 @@ def compute_GA_nonUniRain_slanted_MP(compute_GA_slanted_nonUniRain_input):
 	gwt_z_new = round(gwt_z_new, dz_dp)
 	infil_zw_new = round(infil_zw_new, dz_dp)
 	wetting_front_z_new = round(wetting_front_z_new, dz_dp)
+	ET_cumul_new = round(ET_cumul_new, cumul_dp)
 
-	return (i, j, P_new, S_new, RO_new, infil_cumul_F_new, infil_rate_f_new, gwt_z_new, infil_zw_new, wetting_front_z_new)
+	return (i, j, P_new, S_new, RO_new, infil_cumul_F_new, infil_rate_f_new, gwt_z_new, infil_zw_new, wetting_front_z_new, ET_cumul_new)
 
 ######################################################
 ## infinite slope stability function
@@ -5325,7 +5404,7 @@ def read_RISD_json_yaml_input_v20260228(input_file_name):
 			convert_intensity *= 1/60
 
 		# return info
-		return filename, input_folder_path, output_folder_path, json_yaml_input_data, None, None, None, None, None, dz, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, dt, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, convert_time, convert_intensity, None
+		return filename, input_folder_path, output_folder_path, json_yaml_input_data, None, None, None, None, None, dz, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, dt, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, convert_time, convert_intensity, None, None, None
 
 	##################################################################################################################
 	## read json or yaml file and extract input file data - also check whether input values have no issues
@@ -5393,7 +5472,7 @@ def read_RISD_json_yaml_input_v20260228(input_file_name):
 				convert_intensity *= 1/60
 
 			# return info
-			return filename, input_folder_path, output_folder_path, restarting_simulation_dict, None, None, None, None, None, dz, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, dt, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, convert_time, convert_intensity, None
+			return filename, input_folder_path, output_folder_path, restarting_simulation_dict, None, None, None, None, None, dz, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, dt, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, convert_time, convert_intensity, None, None, None
 
 		elif isinstance(json_yaml_input_data["restarting_simulation_JSON"], str) and (("yaml" in json_yaml_input_data["restarting_simulation_JSON"]) or ("YAML" in json_yaml_input_data["restarting_simulation_JSON"]) or ("yml" in json_yaml_input_data["restarting_simulation_JSON"]) or ("YML" in json_yaml_input_data["restarting_simulation_JSON"])):
 			if "\\" in json_yaml_input_data["restarting_simulation_JSON"] or "/" in json_yaml_input_data["restarting_simulation_JSON"]:
@@ -5428,7 +5507,7 @@ def read_RISD_json_yaml_input_v20260228(input_file_name):
 				convert_intensity *= 1/60
 
 			# return info
-			return filename, input_folder_path, output_folder_path, restarting_simulation_dict, None, None, None, None, None, dz, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, dt, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, convert_time, convert_intensity, None
+			return filename, input_folder_path, output_folder_path, restarting_simulation_dict, None, None, None, None, None, dz, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, dt, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, convert_time, convert_intensity, None, None, None
 
 		elif json_yaml_input_data["restarting_simulation_JSON"] is None:
 			restarting_simulation_dict = None
@@ -5525,6 +5604,7 @@ def read_RISD_json_yaml_input_v20260228(input_file_name):
 
 			# check for interval
 			dt = min([abs(e-s) for (s,e,_) in rainfall_history_given])/dt_iter_num
+			dt_raw = dt  # store raw dt before unit conversion (for ET parsing)
 
 			rain_time_I = []
 			for (startT, endT, rainI) in rainfall_history_given:
@@ -5561,6 +5641,48 @@ def read_RISD_json_yaml_input_v20260228(input_file_name):
 						del rain_gauge_I
 
 			dt = dt*convert_time
+
+			######################################################
+			## inputs - evapotranspiration (ET) - optional
+			######################################################
+			ET_time_I = []
+			field_capacity_suction = json_yaml_input_data.get("field_capacity_suction", 33.0)
+			ET_history_given = json_yaml_input_data.get("ET_history", None)
+			ET_unit_str = json_yaml_input_data.get("ET_unit", None)
+
+			if ET_history_given is not None and ET_unit_str is not None:
+				# ET unit conversion
+				ET_length_unit, ET_time_unit = ET_unit_str.split("/")
+				convert_ET_intensity = 1.0
+				convert_ET_time = 1.0
+				if ET_length_unit == "mm":
+					convert_ET_intensity *= 1/1000
+				elif ET_length_unit == "cm":
+					convert_ET_intensity *= 1/100
+				if ET_time_unit == "hr":
+					convert_ET_time *= 3600
+					convert_ET_intensity *= 1/3600
+				elif ET_time_unit == "min":
+					convert_ET_time *= 60
+					convert_ET_intensity *= 1/60
+				elif ET_time_unit == "day":
+					convert_ET_time *= 86400
+					convert_ET_intensity *= 1/86400
+
+				for (startT, endT, etI) in ET_history_given:
+					Time_interval = endT - startT
+					time_num_steps = int(np.floor(Time_interval/dt_raw))
+					if time_num_steps > 1:
+						for t_idx in range(time_num_steps):
+							if isinstance(etI, (int, float)):
+								ET_time_I.append([(startT + t_idx*dt_raw)*convert_ET_time, (startT + (t_idx+1)*dt_raw)*convert_ET_time, etI*convert_ET_intensity])
+							elif isinstance(etI, str):
+								ET_time_I.append([(startT + t_idx*dt_raw)*convert_ET_time, (startT + (t_idx+1)*dt_raw)*convert_ET_time, etI])
+					else:
+						if isinstance(etI, (int, float)):
+							ET_time_I.append([startT*convert_ET_time, endT*convert_ET_time, etI*convert_ET_intensity])
+						elif isinstance(etI, str):
+							ET_time_I.append([startT*convert_ET_time, endT*convert_ET_time, etI])
 
 			######################################################
 			## field data
@@ -5746,7 +5868,7 @@ def read_RISD_json_yaml_input_v20260228(input_file_name):
 			actual_landslide_inventory_region = json_yaml_input_data["actual_landslide_inventory_region"]
 
 			# return info
-			return filename, input_folder_path, output_folder_path, restarting_simulation_dict, monte_carlo_iteration_max, output_txt_format, plot_option, gamma_w, FS_crit, dz, termination_apply, landslide_to_debris_flow_threshold, DEM_surf_dip_infiltration_apply, DEM_debris_flow_criteria_apply, FS_3D_analysis, FS_3D_iter_limit, FS_3D_tol, cell_size_3DFS_min, cell_size_3DFS_max, superellipse_n_parameter, superellipse_eccen_ratio, FS_3D_apply_side, FS_3D_apply_root, DEM_UCA_compute_all, cpu_num, dt, rain_time_I, DEM_file_name, material_file_name, soil_depth_model, soil_depth_data, ground_water_model, ground_water_data, dip_surf_filename, aspect_surf_filename, dip_base_filename, aspect_base_filename, local_cell_sizes_slope, DEM_debris_flow_initiation_filename, DEM_neighbor_directed_graph_filename, DEM_UCA_filename, material, material_GIS, convert_time, convert_intensity, actual_landslide_inventory_region
+			return filename, input_folder_path, output_folder_path, restarting_simulation_dict, monte_carlo_iteration_max, output_txt_format, plot_option, gamma_w, FS_crit, dz, termination_apply, landslide_to_debris_flow_threshold, DEM_surf_dip_infiltration_apply, DEM_debris_flow_criteria_apply, FS_3D_analysis, FS_3D_iter_limit, FS_3D_tol, cell_size_3DFS_min, cell_size_3DFS_max, superellipse_n_parameter, superellipse_eccen_ratio, FS_3D_apply_side, FS_3D_apply_root, DEM_UCA_compute_all, cpu_num, dt, rain_time_I, DEM_file_name, material_file_name, soil_depth_model, soil_depth_data, ground_water_model, ground_water_data, dip_surf_filename, aspect_surf_filename, dip_base_filename, aspect_base_filename, local_cell_sizes_slope, DEM_debris_flow_initiation_filename, DEM_neighbor_directed_graph_filename, DEM_UCA_filename, material, material_GIS, convert_time, convert_intensity, actual_landslide_inventory_region, ET_time_I, field_capacity_suction
 
 	except (KeyError, NameError):
 		# input file variable error
@@ -7446,12 +7568,12 @@ def perform_3DTSP_v2(monte_carlo_iter_filename_dict):
 	#####################################
 	## import input files from original input
 	#####################################
-	# filename, input_folder_path, output_folder_path, restarting_simulation_dict, monte_carlo_iteration_max, output_txt_format, plot_option, gamma_w, FS_crit, dz, termination_apply, landslide_to_debris_flow_threshold, DEM_surf_dip_infiltration_apply, DEM_debris_flow_criteria_apply, FS_3D_analysis, FS_3D_iter_limit, FS_3D_tol, cell_size_3DFS_min, cell_size_3DFS_max, superellipse_n_parameter, superellipse_eccen_ratio, FS_3D_apply_side, FS_3D_apply_root, DEM_UCA_compute_all, cpu_num, dt, rain_time_I, DEM_file_name, material_file_name, soil_depth_model, soil_depth_data, ground_water_model, ground_water_data, dip_surf_filename, aspect_surf_filename, dip_base_filename, aspect_base_filename, local_cell_sizes_slope, DEM_debris_flow_initiation_filename, DEM_neighbor_directed_graph_filename, DEM_UCA_filename, material, material_GIS, convert_time, convert_intensity, actual_landslide_inventory_region = read_RISD_json_yaml_input_v20260228(input_JSON_YAML_file_name)
+	# filename, input_folder_path, output_folder_path, restarting_simulation_dict, monte_carlo_iteration_max, output_txt_format, plot_option, gamma_w, FS_crit, dz, termination_apply, landslide_to_debris_flow_threshold, DEM_surf_dip_infiltration_apply, DEM_debris_flow_criteria_apply, FS_3D_analysis, FS_3D_iter_limit, FS_3D_tol, cell_size_3DFS_min, cell_size_3DFS_max, superellipse_n_parameter, superellipse_eccen_ratio, FS_3D_apply_side, FS_3D_apply_root, DEM_UCA_compute_all, cpu_num, dt, rain_time_I, DEM_file_name, material_file_name, soil_depth_model, soil_depth_data, ground_water_model, ground_water_data, dip_surf_filename, aspect_surf_filename, dip_base_filename, aspect_base_filename, local_cell_sizes_slope, DEM_debris_flow_initiation_filename, DEM_neighbor_directed_graph_filename, DEM_UCA_filename, material, material_GIS, convert_time, convert_intensity, actual_landslide_inventory_region, ET_time_I, field_capacity_suction = read_RISD_json_yaml_input_v20260228(input_JSON_YAML_file_name)
 
 	copy_input = deepcopy(monte_carlo_iter_filename_dict["original_input"])
 	copy_input["restarting_simulation_JSON"] = None
 
-	filename, _, output_folder_path, _, monte_carlo_iteration_max, output_txt_format, plot_option, gamma_w, FS_crit, dz, termination_apply, landslide_to_debris_flow_threshold, DEM_surf_dip_infiltration_apply, DEM_debris_flow_criteria_apply, FS_3D_analysis, FS_3D_iter_limit, FS_3D_tol, cell_size_3DFS_min, cell_size_3DFS_max, superellipse_n_parameter, superellipse_eccen_ratio, FS_3D_apply_side, FS_3D_apply_root, _, cpu_num, dt, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _ = read_RISD_json_yaml_input_v20260228(copy_input) 
+	filename, _, output_folder_path, _, monte_carlo_iteration_max, output_txt_format, plot_option, gamma_w, FS_crit, dz, termination_apply, landslide_to_debris_flow_threshold, DEM_surf_dip_infiltration_apply, DEM_debris_flow_criteria_apply, FS_3D_analysis, FS_3D_iter_limit, FS_3D_tol, cell_size_3DFS_min, cell_size_3DFS_max, superellipse_n_parameter, superellipse_eccen_ratio, FS_3D_apply_side, FS_3D_apply_root, _, cpu_num, dt, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _ = read_RISD_json_yaml_input_v20260228(copy_input) 
 	
 	#####################################
 	# store new dictionary
@@ -7607,8 +7729,9 @@ def perform_3DTSP_v2(monte_carlo_iter_filename_dict):
 		# SWCC_m, _, _ = read_GIS_data(filename_dict["material"]["hydraulic"]["SWCC_m"][1], filename_dict["material"]["hydraulic"]["SWCC_m"][0], full_output=False)
 		k_sat, _, _ = read_GIS_data(filename_dict["material"]["hydraulic"]["k_sat"][1], filename_dict["material"]["hydraulic"]["k_sat"][0], full_output=False)
 		initial_suction, _, _ = read_GIS_data(filename_dict["material"]["hydraulic"]["initial_suction"][1], filename_dict["material"]["hydraulic"]["initial_suction"][0], full_output=False)
-		# theta_sat, _, _ = read_GIS_data(filename_dict["material"]["hydraulic"]["theta_sat"][1], filename_dict["material"]["hydraulic"]["theta_sat"][0], full_output=False)
-		# theta_residual, _, _ = read_GIS_data(filename_dict["material"]["hydraulic"]["theta_residual"][1], filename_dict["material"]["hydraulic"]["theta_residual"][0], full_output=False)
+		theta_sat, _, _ = read_GIS_data(filename_dict["material"]["hydraulic"]["theta_sat"][1], filename_dict["material"]["hydraulic"]["theta_sat"][0], full_output=False)
+		theta_residual, _, _ = read_GIS_data(filename_dict["material"]["hydraulic"]["theta_residual"][1], filename_dict["material"]["hydraulic"]["theta_residual"][0], full_output=False)
+		theta_FC, _, _ = read_GIS_data(filename_dict["material"]["hydraulic"]["theta_FC"][1], filename_dict["material"]["hydraulic"]["theta_FC"][0], full_output=False)
 		# soil_m_v, _, _ = read_GIS_data(filename_dict["material"]["hydraulic"]["soil_m_v"][1], filename_dict["material"]["hydraulic"]["soil_m_v"][0], full_output=False)
 		S_max, _, _ = read_GIS_data(filename_dict["material"]["hydraulic"]["max_surface_storage"][1], filename_dict["material"]["hydraulic"]["max_surface_storage"][0], full_output=False)
 		# theta_initial, _, _ = read_GIS_data(filename_dict["material"]["hydraulic"]["theta_initial"][1], filename_dict["material"]["hydraulic"]["theta_initial"][0], full_output=False)
@@ -7853,6 +7976,12 @@ def perform_3DTSP_v2(monte_carlo_iter_filename_dict):
 			#####################################
 			rain_t, _, _ = read_GIS_data(filename_dict["intensity"][str(time_step)][1], filename_dict["intensity"][str(time_step)][0], full_output=False)
 			cur_time = filename_dict["intensity"][str(time_step)][3] # end of the time in the current time step
+
+			# ET rate at current time step
+			if "ET_rate" in filename_dict and str(time_step) in filename_dict["ET_rate"]:
+				ET_t, _, _ = read_GIS_data(filename_dict["ET_rate"][str(time_step)][1], filename_dict["ET_rate"][str(time_step)][0], full_output=False)
+			else:
+				ET_t = np.zeros(DEM_surface.shape)
    
 			if time_step == start_time_step:
 				# gwt_dz_t, _, _ = read_GIS_data(filename_dict["gwt_dz"][str(time_step)][1], filename_dict["gwt_dz"][str(time_step)][0], full_output=False)
@@ -7864,6 +7993,10 @@ def perform_3DTSP_v2(monte_carlo_iter_filename_dict):
 				F_cumul_t, _, _ = read_GIS_data(filename_dict["F_cumul"][str(time_step)][1], filename_dict["F_cumul"][str(time_step)][0], full_output=False)
 				z_w_t, _, _ = read_GIS_data(filename_dict["z_w"][str(time_step)][1], filename_dict["z_w"][str(time_step)][0], full_output=False)
 				wet_z_t, _, _ = read_GIS_data(filename_dict["wet_z"][str(time_step)][1], filename_dict["wet_z"][str(time_step)][0], full_output=False)
+				if "ET_cumul" in filename_dict and str(time_step) in filename_dict["ET_cumul"]:
+					ET_cumul_t, _, _ = read_GIS_data(filename_dict["ET_cumul"][str(time_step)][1], filename_dict["ET_cumul"][str(time_step)][0], full_output=False)
+				else:
+					ET_cumul_t = np.zeros(DEM_surface.shape)
 			else:
 				# gwt_dz_t = np.copy(gwt_dz_new_f)
 				gwt_z_t = np.copy(gwt_z_new_f)
@@ -7874,6 +8007,7 @@ def perform_3DTSP_v2(monte_carlo_iter_filename_dict):
 				F_cumul_t = np.copy(infil_cumul_F_f)
 				z_w_t = np.copy(infil_zw_f)
 				wet_z_t = np.copy(wetting_front_z_f)
+				ET_cumul_t = np.copy(ET_cumul_f)
 
 			#####################################################
 			## 1D transient Green-Ampt analysis
@@ -7893,14 +8027,14 @@ def perform_3DTSP_v2(monte_carlo_iter_filename_dict):
 					surf_dip_i = 0 
 
 				# general surface (90 > beta >= 0)
-				# i, j, z_top, z_bottom, z_length, infil_zw_pre, wetting_front_z_pre, gwt_z_pre, rain_I, k_sat_z, cur_t, dt, T_p, T_pp, delta_theta, psi_r_head, infil_cumul_F_pre, slope_beta_deg, dz, P_pre, S_pre, RO_pre, infil_rate_f_pre, S_max, cumul_dp, t_dp, rate_dp, dz_dp = compute_GA_slanted_nonUniRain_input
-				compute_GA_slanted_nonUniRain_input.append( (i, j, DEM_surface[i,j], bedrock_surface[i,j], soil_thickness[i,j], z_w_t[i,j], wet_z_t[i,j], gwt_z_t[i,j], rain_t[i,j], k_sat[i,j], cur_time, dt, T_p[i,j], T_pp[i,j], delta_theta[i,j], psi_r[i,j]/gamma_w, F_cumul_t[i,j], surf_dip_i, Precipitation_t[i,j], Surface_Storage_t[i,j], Runoff_t[i,j], f_rate_t[i,j], S_max[i,j], cumul_dp, t_dp, rate_dp, dz_dp) )
+				# i, j, z_top, z_bottom, z_length, infil_zw_pre, wetting_front_z_pre, gwt_z_pre, rain_I, k_sat_z, cur_t, dt, T_p, T_pp, delta_theta, psi_r_head, infil_cumul_F_pre, slope_beta_deg, P_pre, S_pre, RO_pre, infil_rate_f_pre, S_max, cumul_dp, t_dp, rate_dp, dz_dp, ET_rate, theta_FC, theta_residual, theta_sat, ET_cumul_pre = compute_GA_slanted_nonUniRain_input
+				compute_GA_slanted_nonUniRain_input.append( (i, j, DEM_surface[i,j], bedrock_surface[i,j], soil_thickness[i,j], z_w_t[i,j], wet_z_t[i,j], gwt_z_t[i,j], rain_t[i,j], k_sat[i,j], cur_time, dt, T_p[i,j], T_pp[i,j], delta_theta[i,j], psi_r[i,j]/gamma_w, F_cumul_t[i,j], surf_dip_i, Precipitation_t[i,j], Surface_Storage_t[i,j], Runoff_t[i,j], f_rate_t[i,j], S_max[i,j], cumul_dp, t_dp, rate_dp, dz_dp, ET_t[i,j], theta_FC[i,j], theta_residual[i,j], theta_sat[i,j], ET_cumul_t[i,j]) )
 
 			# run infilatration analysis
 			pool_1DGA_t = mp.Pool(cpu_num)
 
 			comp_1DGS_output = pool_1DGA_t.map(compute_GA_nonUniRain_slanted_MP, compute_GA_slanted_nonUniRain_input)
-			# i, j, P_new, S_new, RO_new, infil_cumul_F_new, infil_rate_f_new, gwt_z_new, infil_zw_new, wetting_front_z_new
+			# i, j, P_new, S_new, RO_new, infil_cumul_F_new, infil_rate_f_new, gwt_z_new, infil_zw_new, wetting_front_z_new, ET_cumul_new
 
 			pool_1DGA_t.close()
 			pool_1DGA_t.join()
@@ -7915,7 +8049,8 @@ def perform_3DTSP_v2(monte_carlo_iter_filename_dict):
 			wetting_front_z_f = np.zeros(DEM_surface.shape)
 			gwt_z_new_f = np.zeros(DEM_surface.shape)
 			gwt_dz_new_f = np.zeros(DEM_surface.shape)
-			for (i, j, P_new, S_new, RO_new, infil_cumul_F_new, infil_rate_f_new, gwt_z_new, infil_zw_new, wetting_front_z_new) in comp_1DGS_output:
+			ET_cumul_f = np.zeros(DEM_surface.shape)
+			for (i, j, P_new, S_new, RO_new, infil_cumul_F_new, infil_rate_f_new, gwt_z_new, infil_zw_new, wetting_front_z_new, ET_cumul_new) in comp_1DGS_output:
 				P_f[i,j] = P_new
 				S_f[i,j] = S_new
 				RO_f[i,j] = RO_new
@@ -7925,6 +8060,7 @@ def perform_3DTSP_v2(monte_carlo_iter_filename_dict):
 				wetting_front_z_f[i,j] = wetting_front_z_new
 				gwt_z_new_f[i,j] = gwt_z_new
 				gwt_dz_new_f[i,j] = DEM_surface[i,j] - gwt_z_new  
+				ET_cumul_f[i,j] = ET_cumul_new
 
 			# add results to the filename dictionary
 			monte_carlo_iter_result_filename_dict["iterations"][str(iter_num)]["gwt_dz"][str(time_step+1)] = [f"{output_folder_path}iteration_{iter_num}/hydraulics/", f"{filename} - gwt_dz - t{time_step+1} - i{iter_num}.{output_txt_format}"]
@@ -7936,6 +8072,7 @@ def perform_3DTSP_v2(monte_carlo_iter_filename_dict):
 			monte_carlo_iter_result_filename_dict["iterations"][str(iter_num)]["F_cumul"][str(time_step+1)] = [f"{output_folder_path}iteration_{iter_num}/hydraulics/", f"{filename} - F_cumul - t{time_step+1} - i{iter_num}.{output_txt_format}"]
 			monte_carlo_iter_result_filename_dict["iterations"][str(iter_num)]["z_w"][str(time_step+1)] = [f"{output_folder_path}iteration_{iter_num}/hydraulics/", f"{filename} - z_w - t{time_step+1} - i{iter_num}.{output_txt_format}"]
 			monte_carlo_iter_result_filename_dict["iterations"][str(iter_num)]["wet_z"][str(time_step+1)] = [f"{output_folder_path}iteration_{iter_num}/hydraulics/", f"{filename} - wet_z - t{time_step+1} - i{iter_num}.{output_txt_format}"]
+			monte_carlo_iter_result_filename_dict["iterations"][str(iter_num)]["ET_cumul"][str(time_step+1)] = [f"{output_folder_path}iteration_{iter_num}/hydraulics/", f"{filename} - ET_cumul - t{time_step+1} - i{iter_num}.{output_txt_format}"]
 
 			# generate plots
 			if os.path.exists(f"{output_folder_path}iteration_{iter_num}/hydraulics/{filename} - gwt_dz - t{time_step+1} - i{iter_num}.html") == False and plot_option:
@@ -7956,6 +8093,8 @@ def perform_3DTSP_v2(monte_carlo_iter_filename_dict):
 				plot_DEM_mat_map_v8_0(f"{output_folder_path}iteration_{iter_num}/hydraulics/", f"{filename} - z_w - t{time_step+1} - i{iter_num}", 'z_w', gridUniqueX, gridUniqueY, None, infil_zw_f, contour_limit=None, open_html=False, layout_width=1000, layout_height=1000)
 			if os.path.exists(f"{output_folder_path}iteration_{iter_num}/hydraulics/{filename} - wet_z - t{time_step+1} - i{iter_num}.html") == False and plot_option:
 				plot_DEM_mat_map_v8_0(f"{output_folder_path}iteration_{iter_num}/hydraulics/", f"{filename} - wet_z - t{time_step+1} - i{iter_num}", 'wet_z', gridUniqueX, gridUniqueY, None, wetting_front_z_f, contour_limit=None, open_html=False, layout_width=1000, layout_height=1000)
+			if os.path.exists(f"{output_folder_path}iteration_{iter_num}/hydraulics/{filename} - ET_cumul - t{time_step+1} - i{iter_num}.html") == False and plot_option:
+				plot_DEM_mat_map_v8_0(f"{output_folder_path}iteration_{iter_num}/hydraulics/", f"{filename} - ET_cumul - t{time_step+1} - i{iter_num}", 'ET_cumul', gridUniqueX, gridUniqueY, None, ET_cumul_f, contour_limit=None, open_html=False, layout_width=1000, layout_height=1000)
 
 			# generate output file
 			generate_output_GIS(output_txt_format, f"{output_folder_path}iteration_{iter_num}/hydraulics/", filename, "gwt_dz", gwt_dz_new_f, DEM_noData, nodata_value, gridUniqueX, gridUniqueY, deltaX, deltaY, XYZ_row_or_col_increase_first, dx_dp, dy_dp, dz_dp, time=time_step+1, iteration=iter_num)
@@ -7967,6 +8106,7 @@ def perform_3DTSP_v2(monte_carlo_iter_filename_dict):
 			generate_output_GIS(output_txt_format, f"{output_folder_path}iteration_{iter_num}/hydraulics/", filename, "F_cumul", infil_cumul_F_f, DEM_noData, nodata_value, gridUniqueX, gridUniqueY, deltaX, deltaY, XYZ_row_or_col_increase_first, dx_dp, dy_dp, cumul_dp, time=time_step+1, iteration=iter_num)
 			generate_output_GIS(output_txt_format, f"{output_folder_path}iteration_{iter_num}/hydraulics/", filename, "z_w", infil_zw_f, DEM_noData, nodata_value, gridUniqueX, gridUniqueY, deltaX, deltaY, XYZ_row_or_col_increase_first, dx_dp, dy_dp, dz_dp, time=time_step+1, iteration=iter_num)
 			generate_output_GIS(output_txt_format, f"{output_folder_path}iteration_{iter_num}/hydraulics/", filename, "wet_z", wetting_front_z_f, DEM_noData, nodata_value, gridUniqueX, gridUniqueY, deltaX, deltaY, XYZ_row_or_col_increase_first, dx_dp, dy_dp, dz_dp, time=time_step+1, iteration=iter_num)
+			generate_output_GIS(output_txt_format, f"{output_folder_path}iteration_{iter_num}/hydraulics/", filename, "ET_cumul", ET_cumul_f, DEM_noData, nodata_value, gridUniqueX, gridUniqueY, deltaX, deltaY, XYZ_row_or_col_increase_first, dx_dp, dy_dp, cumul_dp, time=time_step+1, iteration=iter_num)
 
 			#############################
 			## Physically-based slope stability
@@ -8403,7 +8543,7 @@ if __name__ == '__main__':
 		######################################################################################################################################################	
 		print('The programming is reading the input JSON file for analysis ... \n')
 	
-		filename, input_folder_path, output_folder_path, restarting_simulation_dict, monte_carlo_iteration_max, output_txt_format, plot_option, gamma_w, FS_crit, dz, termination_apply, landslide_to_debris_flow_threshold, DEM_surf_dip_infiltration_apply, DEM_debris_flow_criteria_apply, FS_3D_analysis, FS_3D_iter_limit, FS_3D_tol, cell_size_3DFS_min, cell_size_3DFS_max, superellipse_n_parameter, superellipse_eccen_ratio, FS_3D_apply_side, FS_3D_apply_root, DEM_UCA_compute_all, cpu_num, dt, rain_time_I, DEM_file_name, material_file_name, soil_depth_model, soil_depth_data, ground_water_model, ground_water_data, dip_surf_filename, aspect_surf_filename, dip_base_filename, aspect_base_filename, local_cell_sizes_slope, DEM_debris_flow_initiation_filename, DEM_neighbor_directed_graph_filename, DEM_UCA_filename, material, material_GIS, convert_time, convert_intensity, actual_landslide_inventory_region = read_RISD_json_yaml_input_v20260228(input_JSON_YAML_file_name)
+		filename, input_folder_path, output_folder_path, restarting_simulation_dict, monte_carlo_iteration_max, output_txt_format, plot_option, gamma_w, FS_crit, dz, termination_apply, landslide_to_debris_flow_threshold, DEM_surf_dip_infiltration_apply, DEM_debris_flow_criteria_apply, FS_3D_analysis, FS_3D_iter_limit, FS_3D_tol, cell_size_3DFS_min, cell_size_3DFS_max, superellipse_n_parameter, superellipse_eccen_ratio, FS_3D_apply_side, FS_3D_apply_root, DEM_UCA_compute_all, cpu_num, dt, rain_time_I, DEM_file_name, material_file_name, soil_depth_model, soil_depth_data, ground_water_model, ground_water_data, dip_surf_filename, aspect_surf_filename, dip_base_filename, aspect_base_filename, local_cell_sizes_slope, DEM_debris_flow_initiation_filename, DEM_neighbor_directed_graph_filename, DEM_UCA_filename, material, material_GIS, convert_time, convert_intensity, actual_landslide_inventory_region, ET_time_I, field_capacity_suction = read_RISD_json_yaml_input_v20260228(input_JSON_YAML_file_name)
 
 		# out_filename = output_folder_path + filename   #default typical file path and file name template for saving results and plots
 	
@@ -8980,6 +9120,18 @@ if __name__ == '__main__':
 				monte_carlo_iter_filename_dict["iterations"][str(iter_num)] = deepcopy(temp_dict)
 				del temp_dict  
 
+			###########################
+			## ET rate GIS - DEM (optional)
+			###########################
+			# generate ET rate GIS files for each time step (same pattern as rainfall but simpler - no probabilistic)
+			if len(ET_time_I) > 0:
+				monte_carlo_iter_ET_filename_dict = define_random_rainfall_step_monte_carlo(ET_time_I, gridUniqueX, gridUniqueY, deltaX, deltaY, cpu_num, input_folder_path, output_folder_path, filename+"_ET", 1.0, iterations=monte_carlo_iteration_max, output_txt_format=output_txt_format, XYZ_row_or_col_increase_first=XYZ_row_or_col_increase_first, DEM_noData=DEM_noData, nodata_value=nodata_value, I_dp=rate_dp, plot=plot_option)
+				for iter_num in range(1,monte_carlo_iteration_max+1):
+					temp_dict = monte_carlo_iter_filename_dict["iterations"][str(iter_num)]
+					temp_dict["ET_rate"] = deepcopy(monte_carlo_iter_ET_filename_dict[iter_num])
+					monte_carlo_iter_filename_dict["iterations"][str(iter_num)] = deepcopy(temp_dict)
+					del temp_dict
+
 			# surface storage (S), cumulative runoff (RO), cumulative rainfall (P) 
 			DEM_S = np.zeros((DEM_surface.shape), dtype=float)
 			DEM_RO = np.zeros((DEM_surface.shape), dtype=float)
@@ -8994,6 +9146,9 @@ if __name__ == '__main__':
 			DEM_infil_zw = np.where(np.logical_or(gwt_depth_from_surf == 0, DEM_gwt_z >= DEM_surface), DEM_soil_thickness, 0)
 			DEM_wetting_front_z = np.where(np.logical_or(gwt_depth_from_surf == 0, DEM_gwt_z >= DEM_surface), DEM_base, DEM_surface)
 
+			# cumulative ET (initially zero)
+			DEM_ET_cumul = np.zeros(DEM_surface.shape)
+
 			# add precipitation to each monte carlo simulations
 			Surface_Storage_dict = {}
 			Precipitation_dict = {}
@@ -9002,6 +9157,7 @@ if __name__ == '__main__':
 			F_cumul_dict = {}
 			z_w_dict = {}
 			wet_z_dict = {}
+			ET_cumul_dict = {}
 			for iter_num in range(1,monte_carlo_iteration_max+1):
 				output_folder_path_iter_temp_hydraulics = f"{output_folder_path}iteration_{iter_num}/hydraulics/"
 
@@ -9020,6 +9176,8 @@ if __name__ == '__main__':
 					plot_DEM_mat_map_v8_0(output_folder_path_iter_temp_hydraulics, filename+f' - z_w - t0 - i{iter_num}', 'z_w', gridUniqueX, gridUniqueY, None, DEM_infil_zw, contour_limit=None, open_html=False, layout_width=1000, layout_height=1000)
 				if os.path.exists(output_folder_path_iter_temp_hydraulics+filename+f' - wet_z - t0 - i{iter_num}.html') == False and plot_option:
 					plot_DEM_mat_map_v8_0(output_folder_path_iter_temp_hydraulics, filename+f' - wet_z - t0 - i{iter_num}', 'wet_z', gridUniqueX, gridUniqueY, None, DEM_wetting_front_z, contour_limit=None, open_html=False, layout_width=1000, layout_height=1000)
+				if os.path.exists(output_folder_path_iter_temp_hydraulics+filename+f' - ET_cumul - t0 - i{iter_num}.html') == False and plot_option:
+					plot_DEM_mat_map_v8_0(output_folder_path_iter_temp_hydraulics, filename+f' - ET_cumul - t0 - i{iter_num}', 'ET_cumul', gridUniqueX, gridUniqueY, None, DEM_ET_cumul, contour_limit=None, open_html=False, layout_width=1000, layout_height=1000)
 
 				# export data
 				generate_output_GIS(output_txt_format, output_folder_path_iter_temp_hydraulics, filename, "Surface_Storage", DEM_S, DEM_noData, nodata_value, gridUniqueX, gridUniqueY, deltaX, deltaY, XYZ_row_or_col_increase_first, dx_dp, dy_dp, cumul_dp, time=0, iteration=iter_num)
@@ -9029,6 +9187,7 @@ if __name__ == '__main__':
 				generate_output_GIS(output_txt_format, output_folder_path_iter_temp_hydraulics, filename, "F_cumul", DEM_infil_cumul_F, DEM_noData, nodata_value, gridUniqueX, gridUniqueY, deltaX, deltaY, XYZ_row_or_col_increase_first, dx_dp, dy_dp, cumul_dp, time=0, iteration=iter_num)
 				generate_output_GIS(output_txt_format, output_folder_path_iter_temp_hydraulics, filename, "z_w", DEM_infil_zw, DEM_noData, nodata_value, gridUniqueX, gridUniqueY, deltaX, deltaY, XYZ_row_or_col_increase_first, dx_dp, dy_dp, dz_dp, time=0, iteration=iter_num)
 				generate_output_GIS(output_txt_format, output_folder_path_iter_temp_hydraulics, filename, "wet_z", DEM_wetting_front_z, DEM_noData, nodata_value, gridUniqueX, gridUniqueY, deltaX, deltaY, XYZ_row_or_col_increase_first, dx_dp, dy_dp, dz_dp, time=0, iteration=iter_num)
+				generate_output_GIS(output_txt_format, output_folder_path_iter_temp_hydraulics, filename, "ET_cumul", DEM_ET_cumul, DEM_noData, nodata_value, gridUniqueX, gridUniqueY, deltaX, deltaY, XYZ_row_or_col_increase_first, dx_dp, dy_dp, cumul_dp, time=0, iteration=iter_num)
 
 				# store file name
 				Surface_Storage_dict["0"] = [output_folder_path_iter_temp_hydraulics, filename+f" - Surface_Storage - t0 - i{iter_num}.{output_txt_format}"]
@@ -9038,6 +9197,7 @@ if __name__ == '__main__':
 				F_cumul_dict["0"] = [output_folder_path_iter_temp_hydraulics, filename+f" - F_cumul - t0 - i{iter_num}.{output_txt_format}"]
 				z_w_dict["0"] = [output_folder_path_iter_temp_hydraulics, filename+f" - z_w - t0 - i{iter_num}.{output_txt_format}"]
 				wet_z_dict["0"] = [output_folder_path_iter_temp_hydraulics, filename+f" - wet_z - t0 - i{iter_num}.{output_txt_format}"]
+				ET_cumul_dict["0"] = [output_folder_path_iter_temp_hydraulics, filename+f" - ET_cumul - t0 - i{iter_num}.{output_txt_format}"]
 
 				# store file name
 				temp_dict = monte_carlo_iter_filename_dict["iterations"][str(iter_num)]
@@ -9048,6 +9208,7 @@ if __name__ == '__main__':
 				temp_dict["F_cumul"] = deepcopy(F_cumul_dict)
 				temp_dict["z_w"] = deepcopy(z_w_dict)
 				temp_dict["wet_z"] = deepcopy(wet_z_dict)
+				temp_dict["ET_cumul"] = deepcopy(ET_cumul_dict)
 				monte_carlo_iter_filename_dict["iterations"][str(iter_num)] = deepcopy(temp_dict)
 				del temp_dict
 
@@ -9056,7 +9217,7 @@ if __name__ == '__main__':
 			######################################################
 			## hydraulic properties at time_step = 0 at each DEM cell
 			######################################################	
-			monte_carlo_iter_filename_dict = generate_t0_GA_pond_parameters(monte_carlo_iteration_max, monte_carlo_iter_filename_dict, output_folder_path, filename, DEM_soil_thickness, dip_surf, DEM_noData, nodata_value, gridUniqueX, gridUniqueY, deltaX, deltaY, XYZ_row_or_col_increase_first, DEM_surf_dip_infiltration_apply, plot_option, cpu_num, dz, dx_dp, dy_dp, theta_dp, press_dp, cumul_dp, dz_dp, t_dp)
+			monte_carlo_iter_filename_dict = generate_t0_GA_pond_parameters(monte_carlo_iteration_max, monte_carlo_iter_filename_dict, output_folder_path, filename, DEM_soil_thickness, dip_surf, DEM_noData, nodata_value, gridUniqueX, gridUniqueY, deltaX, deltaY, XYZ_row_or_col_increase_first, DEM_surf_dip_infiltration_apply, plot_option, cpu_num, dz, dx_dp, dy_dp, theta_dp, press_dp, cumul_dp, dz_dp, t_dp, field_capacity_suction=field_capacity_suction)
 
 			print('		Generating the material properties and initial state data completed!\n')
 			
