@@ -249,7 +249,7 @@ def RALP_GUI():
 
 	root.title("Robust Areal Landslide Prediction (RALP) v1.11")    # S/W title
 	root.call('wm', 'iconphoto', root._w, tk.PhotoImage(file='NGI_logo_cropped.png'))     # icon
-	root.geometry("1995x935")            # window size - when need to fix 
+	root.geometry("1995x1020")            # window size - when need to fix 
 
 	###########################################################################
 	## mainframe, canvas and scrollbar
@@ -277,7 +277,7 @@ def RALP_GUI():
 	# root.resizable(width=False, height=False)
 
 	# set maxium and minimum size GUI can become
-	root.maxsize(2000, 1000)
+	root.maxsize(2000, 1100)
 	root.minsize(650, 500)
 
 	#################################
@@ -1449,6 +1449,133 @@ def RALP_GUI():
 		rainfall_history_opt_combo.config(state="normal")  # Enable the combo
 		rainfall_history_assign_button.config(state="normal")  # Enable the assign button
 		sub_window.destroy()		# close the sub window completely
+
+	######################################
+	## ET History functions
+	######################################
+	def ET_history_func():
+		selected_ET_history_option = ET_history_opt_str.get()
+		if selected_ET_history_option == "Uniform":
+			open_new_window_ET_uniform()
+		elif selected_ET_history_option == "GIS file":
+			open_new_window_ET_GIS()
+
+	def close_ET_window_toplevel(sub_window):
+		ET_history_opt_combo.config(state="readonly")
+		ET_history_assign_button.config(state="normal")
+		sub_window.destroy()
+
+	def open_new_window_ET_uniform():
+		ET_history_opt_combo.config(state="disabled")
+		ET_history_assign_button.config(state="disabled")
+
+		new_window = tk.Toplevel(root)
+		new_window.title("ET History")
+		new_window.geometry("440x700")
+		new_window.resizable(width=False, height=True)
+		main_canvas = tk.Canvas(new_window)
+
+		try:
+			icon_img = tk.PhotoImage(file='NGI_logo_cropped.png')
+			new_window.iconphoto(False, icon_img)
+			new_window._icon_img = icon_img
+		except:
+			pass
+
+		ver_scroll_bar = tk.Scrollbar(new_window, orient='vertical', command=main_canvas.yview)
+		ver_scroll_bar.pack(side='right', fill='y')
+		main_canvas.configure(yscrollcommand=ver_scroll_bar.set)
+		main_canvas.bind('<Configure>', lambda e: main_canvas.configure(scrollregion=main_canvas.bbox("all")))
+		main_canvas.pack(side='left', fill='both', expand=True)
+
+		et_data_frame = tk.Frame(main_canvas)
+		main_canvas.create_window((0, 0), window=et_data_frame, anchor="nw")
+
+		tk.Label(et_data_frame, text="Uniform ET Rate", font=("Arial", 12), anchor="w", justify="left").grid(row=0, column=0, columnspan=3, padx=5, pady=(0, 5), sticky="w")
+		tk.Label(et_data_frame, text="Time Step", font=("Arial", 12), anchor="w", justify="left").grid(row=1, column=0, columnspan=1, padx=5, pady=(0, 5), sticky="w")
+		tk.Label(et_data_frame, text="Start Time", font=("Arial", 12), anchor="w", justify="left").grid(row=1, column=1, columnspan=1, padx=5, pady=(0, 5), sticky="w")
+		tk.Label(et_data_frame, text="End Time", font=("Arial", 12), anchor="w", justify="left").grid(row=1, column=2, columnspan=1, padx=5, pady=(0, 5), sticky="w")
+		tk.Label(et_data_frame, text="ET Rate", font=("Arial", 12), anchor="w", justify="left").grid(row=1, column=3, columnspan=1, padx=5, pady=(0, 5), sticky="w")
+
+		for i in range(1, 101):
+			tk.Label(et_data_frame, text=str(i), font=("Arial", 12), anchor="w", justify="left").grid(row=i + 1, column=0, columnspan=1, padx=5, pady=(0, 5), sticky="w")
+			tk.Entry(et_data_frame, width=10, bd=3, font=("Arial", 12), textvariable=ET_hist_t_dict[i][0]).grid(row=i + 1, column=1, columnspan=1, padx=5, pady=(0, 5), sticky="we")
+			tk.Entry(et_data_frame, width=10, bd=3, font=("Arial", 12), textvariable=ET_hist_t_dict[i][1]).grid(row=i + 1, column=2, columnspan=1, padx=5, pady=(0, 5), sticky="we")
+			tk.Entry(et_data_frame, width=10, bd=3, font=("Arial", 12), textvariable=ET_hist_t_dict[i][2]).grid(row=i + 1, column=3, columnspan=1, padx=5, pady=(0, 5), sticky="we")
+
+		tk.Button(et_data_frame, text="Assign", width=8, height=1, padx=10, pady=5, font=("Arial", 12), command=lambda: close_ET_window_toplevel(new_window)).grid(row=0, column=3, columnspan=1, padx=5, pady=5, sticky="we")
+		new_window.protocol("WM_DELETE_WINDOW", lambda: close_ET_window_toplevel(new_window))
+		new_window.mainloop()
+
+	def open_ET_GIS_file_command(time_step, entry_widget):
+		try:
+			if len(input_folder_entry.get()) > 0 and os.path.isdir(str(input_folder_entry.get())):
+				file_path = str(input_folder_entry.get())
+			else:
+				file_path = "C:/Users/" + os.getlogin() + '/Documents'
+		except:
+			file_path = "C:/Users/" + os.getlogin() + '/Documents'
+
+		selected_ET_GIS_file = filedialog.askopenfilename(initialdir=file_path,
+							title="Select ET rate GIS file",
+							filetypes=(
+								("Esri ASCII raster", "*.asc"),
+								("comma-separated value", "*.csv"),
+								("Surfer 6 Text Grid", "*.grd")
+							))
+		try:
+			if len(selected_ET_GIS_file) > 0 and os.path.isfile(selected_ET_GIS_file):
+				file_name_only = selected_ET_GIS_file.split("/")[-1]
+				ET_hist_t_dict[time_step][3].set(file_name_only)
+				entry_widget.delete(0, tk.END)
+				entry_widget.insert(0, file_name_only)
+		except:
+			pass
+
+	def open_new_window_ET_GIS():
+		ET_history_opt_combo.config(state="disabled")
+		ET_history_assign_button.config(state="disabled")
+
+		new_window = tk.Toplevel(root)
+		new_window.title("ET History - GIS file")
+		new_window.geometry("600x700")
+		new_window.resizable(width=False, height=True)
+		main_canvas = tk.Canvas(new_window)
+
+		try:
+			icon_img = tk.PhotoImage(file='NGI_logo_cropped.png')
+			new_window.iconphoto(False, icon_img)
+			new_window._icon_img = icon_img
+		except:
+			pass
+
+		ver_scroll_bar = tk.Scrollbar(new_window, orient='vertical', command=main_canvas.yview)
+		ver_scroll_bar.pack(side='right', fill='y')
+		main_canvas.configure(yscrollcommand=ver_scroll_bar.set)
+		main_canvas.bind('<Configure>', lambda e: main_canvas.configure(scrollregion=main_canvas.bbox("all")))
+		main_canvas.pack(side='left', fill='both', expand=True)
+
+		et_data_frame = tk.Frame(main_canvas)
+		main_canvas.create_window((0, 0), window=et_data_frame, anchor="nw")
+
+		tk.Label(et_data_frame, text="GIS-based ET Rate", font=("Arial", 12), anchor="w", justify="left").grid(row=0, column=0, columnspan=3, padx=5, pady=(0, 5), sticky="w")
+		tk.Label(et_data_frame, text="Time Step", font=("Arial", 12), anchor="w", justify="left").grid(row=1, column=0, columnspan=1, padx=5, pady=(0, 5), sticky="w")
+		tk.Label(et_data_frame, text="Start Time", font=("Arial", 12), anchor="w", justify="left").grid(row=1, column=1, columnspan=1, padx=5, pady=(0, 5), sticky="w")
+		tk.Label(et_data_frame, text="End Time", font=("Arial", 12), anchor="w", justify="left").grid(row=1, column=2, columnspan=1, padx=5, pady=(0, 5), sticky="w")
+		tk.Label(et_data_frame, text="GIS Filename", font=("Arial", 12), anchor="w", justify="left").grid(row=1, column=3, columnspan=3, padx=5, pady=(0, 5), sticky="w")
+
+		ET_hist_t_GIS_entry_dict = {}
+		for i in range(1, 101):
+			tk.Label(et_data_frame, text=str(i), font=("Arial", 12), anchor="w", justify="left").grid(row=i + 1, column=0, columnspan=1, padx=5, pady=(0, 5), sticky="w")
+			tk.Entry(et_data_frame, width=10, bd=3, font=("Arial", 12), textvariable=ET_hist_t_dict[i][0]).grid(row=i + 1, column=1, columnspan=1, padx=5, pady=(0, 5), sticky="we")
+			tk.Entry(et_data_frame, width=10, bd=3, font=("Arial", 12), textvariable=ET_hist_t_dict[i][1]).grid(row=i + 1, column=2, columnspan=1, padx=5, pady=(0, 5), sticky="we")
+			ET_hist_t_GIS_entry_dict[i] = tk.Entry(et_data_frame, width=20, bd=3, font=("Arial", 12), textvariable=ET_hist_t_dict[i][3])
+			ET_hist_t_GIS_entry_dict[i].grid(row=i + 1, column=3, columnspan=2, padx=5, pady=(0, 5), sticky="we")
+			tk.Button(et_data_frame, text="Select", width=8, height=1, padx=10, pady=5, font=("Arial", 12), command=lambda ts=i: open_ET_GIS_file_command(ts, ET_hist_t_GIS_entry_dict[ts])).grid(row=i + 1, column=5, columnspan=1, padx=5, pady=5, sticky="we")
+
+		tk.Button(et_data_frame, text="Assign", width=8, height=1, padx=10, pady=5, font=("Arial", 12), command=lambda: close_ET_window_toplevel(new_window)).grid(row=0, column=3, columnspan=1, padx=5, pady=5, sticky="we")
+		new_window.protocol("WM_DELETE_WINDOW", lambda: close_ET_window_toplevel(new_window))
+		new_window.mainloop()
 
 	# Function to open a new window to assign uniform rainfall data 
 	def open_new_window_rainfall_uniform():
@@ -3437,7 +3564,26 @@ def RALP_GUI():
 				json_yaml_input_data["rainfall_history"] = rainfall_hist_list[:]
 
 				json_yaml_input_data["dt_iteration"] = rainfall_time_sudiv_int.get()
-				
+
+				# evapotranspiration (ET) parameters
+				if ET_history_opt_str.get() != "None":
+					json_yaml_input_data["ET_unit"] = ET_intensity_unit_str.get()
+					ET_hist_list = []
+					for et_t in range(1, 101):
+						if ET_hist_t_dict[et_t][0].get() == 0 and ET_hist_t_dict[et_t][1].get() == 0:
+							continue
+						if ET_history_opt_str.get() == "Uniform":
+							ET_hist_list.append([ET_hist_t_dict[et_t][0].get(), ET_hist_t_dict[et_t][1].get(), ET_hist_t_dict[et_t][2].get()])
+						elif ET_history_opt_str.get() == "GIS file":
+							if len(ET_hist_t_dict[et_t][3].get()) > 0:
+								ET_hist_list.append([ET_hist_t_dict[et_t][0].get(), ET_hist_t_dict[et_t][1].get(), ET_hist_t_dict[et_t][3].get()])
+					json_yaml_input_data["ET_history"] = ET_hist_list[:]
+					json_yaml_input_data["field_capacity_suction"] = field_capacity_suction_double.get()
+				else:
+					json_yaml_input_data["ET_unit"] = None
+					json_yaml_input_data["ET_history"] = None
+					json_yaml_input_data["field_capacity_suction"] = 33.0
+
 				json_yaml_input_data["DEM_file_name"] = DEM_filename_str.get()		
 
 				if soil_depth_opt_str.get() == "Uniform Depth" and soil_depth_probabilistic_check_int.get() == 0:
@@ -5501,7 +5647,26 @@ def RALP_GUI():
 				json_yaml_input_data["rainfall_history"] = rainfall_hist_list[:]
 
 				json_yaml_input_data["dt_iteration"] = rainfall_time_sudiv_int.get()
-				
+
+				# evapotranspiration (ET) parameters
+				if ET_history_opt_str.get() != "None":
+					json_yaml_input_data["ET_unit"] = ET_intensity_unit_str.get()
+					ET_hist_list = []
+					for et_t in range(1, 101):
+						if ET_hist_t_dict[et_t][0].get() == 0 and ET_hist_t_dict[et_t][1].get() == 0:
+							continue
+						if ET_history_opt_str.get() == "Uniform":
+							ET_hist_list.append([ET_hist_t_dict[et_t][0].get(), ET_hist_t_dict[et_t][1].get(), ET_hist_t_dict[et_t][2].get()])
+						elif ET_history_opt_str.get() == "GIS file":
+							if len(ET_hist_t_dict[et_t][3].get()) > 0:
+								ET_hist_list.append([ET_hist_t_dict[et_t][0].get(), ET_hist_t_dict[et_t][1].get(), ET_hist_t_dict[et_t][3].get()])
+					json_yaml_input_data["ET_history"] = ET_hist_list[:]
+					json_yaml_input_data["field_capacity_suction"] = field_capacity_suction_double.get()
+				else:
+					json_yaml_input_data["ET_unit"] = None
+					json_yaml_input_data["ET_history"] = None
+					json_yaml_input_data["field_capacity_suction"] = 33.0
+
 				json_yaml_input_data["DEM_file_name"] = DEM_filename_str.get()		
 
 				if soil_depth_opt_str.get() == "Uniform Depth" and soil_depth_probabilistic_check_int.get() == 0:
@@ -8147,7 +8312,7 @@ def RALP_GUI():
 	## Column 1 and 2 separator
 	######################################
 	separator_col1_col2 = ttk.Separator(GUI_frame, orient='vertical')
-	separator_col1_col2.grid(row=0, column=8, rowspan=19, padx=1, pady=5, sticky="ns")
+	separator_col1_col2.grid(row=0, column=8, rowspan=21, padx=1, pady=5, sticky="ns")
 
 	######################################
 	# Section Title - topographic inputs
@@ -8546,6 +8711,70 @@ def RALP_GUI():
 	rainfall_time_sudiv_entry.grid(row=16, column=15, columnspan=2, padx=5, pady=5, sticky="we")
 
 	######################################
+	## Evapotranspiration (ET) Options
+	######################################
+	# ET history data dict - up to 100 time steps
+	# [start time, end time, uniform ET rate, GIS filename]
+	ET_hist_t_dict = {}
+	for time_step in range(1, 101):
+		ET_hist_t_dict[time_step] = [
+			tk.DoubleVar(),  # start time
+			tk.DoubleVar(),  # end time
+			tk.DoubleVar(),  # uniform ET rate
+			tk.StringVar(),  # GIS filename for ET rate
+		]
+
+	##############
+	# ET History
+	##############
+	ET_history_label = tk.Label(GUI_frame, text="ET History", font=("Arial", 12, 'bold'), anchor="w", justify="left")
+	ET_history_opt_str = tk.StringVar()
+	ET_history_opt_combo = ttk.Combobox(
+		GUI_frame,
+		state="readonly",
+		values=["None", "Uniform", "GIS file"],
+		textvariable=ET_history_opt_str,
+		width=10,
+		justify="left",
+		font=("Arial", 12)
+	)
+	ET_history_opt_combo.current(0)
+	ET_history_assign_button = tk.Button(GUI_frame, text="Assign", width=8, height=1, padx=10, pady=5, font=("Arial", 12), command=ET_history_func)
+
+	ET_history_label.grid(row=19, column=9, columnspan=1, padx=5, pady=(0,5), sticky="w")
+	ET_history_opt_combo.grid(row=19, column=10, columnspan=6, padx=5, pady=5, sticky="we")
+	ET_history_assign_button.grid(row=19, column=16, columnspan=1, padx=5, pady=5, sticky="e")
+
+	##############
+	# ET intensity unit
+	##############
+	ET_intensity_unit_label = tk.Label(GUI_frame, text="ET Unit", font=("Arial", 12), anchor="w", justify="left")
+	ET_intensity_unit_str = tk.StringVar()
+	ET_intensity_unit_combo = ttk.Combobox(
+		GUI_frame,
+		state="readonly",
+		values=["mm/day", "mm/hr", "cm/hr", "m/hr", "mm/min", "cm/min", "m/min", "mm/s", "cm/s", "m/s"],
+		textvariable=ET_intensity_unit_str,
+		width=8,
+		font=("Arial", 12)
+	)
+	ET_intensity_unit_combo.current(0)
+
+	ET_intensity_unit_label.grid(row=20, column=9, columnspan=2, padx=5, pady=(0,5), sticky="w")
+	ET_intensity_unit_combo.grid(row=20, column=11, columnspan=2, padx=5, pady=5, sticky="we")
+
+	##############
+	# field capacity suction
+	##############
+	field_capacity_suction_label = tk.Label(GUI_frame, text=u"FC Suction (kPa)", font=("Arial", 12), anchor="w", justify="left")
+	field_capacity_suction_double = tk.DoubleVar()
+	field_capacity_suction_double.set(33.0)
+	field_capacity_suction_entry = tk.Entry(GUI_frame, width=12, bd=3, font=("Arial", 12), textvariable=field_capacity_suction_double)
+
+	field_capacity_suction_label.grid(row=20, column=13, columnspan=2, padx=5, pady=(0,5), sticky="w")
+	field_capacity_suction_entry.grid(row=20, column=15, columnspan=2, padx=5, pady=5, sticky="we")
+
+	######################################
 	## Infiltration Model Options
 	######################################
 	##############
@@ -8622,7 +8851,7 @@ def RALP_GUI():
 	## Column 2 and 3 separator
 	######################################
 	separator_col2_col3 = ttk.Separator(GUI_frame, orient='vertical')
-	separator_col2_col3.grid(row=0, column=17, rowspan=19, padx=1, pady=5, sticky="ns")
+	separator_col2_col3.grid(row=0, column=17, rowspan=21, padx=1, pady=5, sticky="ns")
 
 	############################################################################
 	## Landslide Susceptibility Header
@@ -9216,7 +9445,7 @@ def RALP_GUI():
 	## status
 	#################################
 	status = tk.Label(GUI_frame, text="", bd=1, relief='sunken', anchor="e", font=("Arial", 12))
-	status.grid(row=19, column=0, columnspan=26, sticky="we")
+	status.grid(row=21, column=0, columnspan=26, sticky="we")
 
 	###########################################################################
 	## GUI operation
