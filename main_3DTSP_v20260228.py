@@ -3775,6 +3775,50 @@ def compute_GA_nonUniRain_slanted_MP(compute_GA_slanted_nonUniRain_input):
 	dz_dp 		# vertical size 
 	'''
 
+	#############################
+	## Recompute T_p and T_pp for current rainfall intensity
+	## (time-compression approach for non-uniform rainfall)
+	## T_p and T_pp are initially computed from the first time step's rain rate.
+	## When rainfall changes, they must be updated so that the GA ponding equation 
+	## uses the correct virtual time, not the full elapsed time from t=0.
+	#############################
+	cos_beta = np.cos(np.radians(slope_beta_deg))
+	if slope_beta_deg < 90 and rain_I > 0 and delta_theta > 0 and psi_r_head > 0 and k_sat_z > 0:
+		rain_eff = rain_I * cos_beta
+		if rain_eff > k_sat_z:
+			# Ponding is possible with current rainfall intensity
+			pd = psi_r_head * delta_theta  # ψ_f × Δθ
+
+			# Check if the GA infiltration capacity at current F is already below rain intensity
+			# GA capacity: f_cap = k_sat * (1 + ψ_f*Δθ / F)
+			# If f_cap <= rain_eff, ponding is active regardless of F_p
+			if infil_cumul_F_pre > 0:
+				f_cap = k_sat_z * (1.0 + pd / infil_cumul_F_pre)
+			else:
+				f_cap = 1e9  # infinite capacity at F=0
+
+			if f_cap <= rain_eff:
+				# Already in ponding: GA capacity has dropped below rainfall rate
+				# Time-compression: compute virtual GA time τ that produces F_pre
+				T_pp = (infil_cumul_F_pre - (pd / cos_beta) * np.log(1.0 + infil_cumul_F_pre * cos_beta / pd)) / (k_sat_z * cos_beta)
+				T_p = cur_t - dt
+			else:
+				# GA capacity still exceeds rainfall rate
+				# Compute F_p for current rain rate (F at which f_cap = rain_eff)
+				denom = rain_I - k_sat_z * cos_beta
+				if denom > 0:
+					F_p_current = (psi_r_head * k_sat_z * delta_theta) / denom
+				else:
+					F_p_current = 1e9
+				# Compute T_p as absolute time when ponding would begin
+				time_to_Fp = (F_p_current - infil_cumul_F_pre) / rain_eff if rain_eff > 0 else 1e9
+				T_p = (cur_t - dt) + time_to_Fp
+				# T_pp: virtual GA time at F_p
+				if pd > 0:
+					T_pp = (F_p_current - (pd / cos_beta) * np.log(1.0 + F_p_current * cos_beta / pd)) / (k_sat_z * cos_beta)
+				else:
+					T_pp = 0
+
 	## check whether the infiltration situation is ponding or not at the cur_t
 	if infil_cumul_F_pre > 0 and (cur_t - T_p + T_pp) > 0:
 		try:
@@ -3796,8 +3840,25 @@ def compute_GA_nonUniRain_slanted_MP(compute_GA_slanted_nonUniRain_input):
 		#############################
 		## infiltration based on rainfall intensity (i) vs saturated hydraulic conductivity (k_sat_z)
 		#############################
+		# Compute the Green-Ampt infiltration capacity at the current cumulative infiltration.
+		# This is the maximum rate the soil can absorb water, which decreases as F grows.
+		# Using this instead of infil_rate_f_pre correctly detects when ponding should begin,
+		# because infil_rate_f_pre during pre-ponding equals rain*cos(β) and never triggers ponding.
+		if infil_cumul_F_pre > 0 and delta_theta > 0 and psi_r_head > 0:
+			GA_f_cap = k_sat_z * (1.0 + psi_r_head * delta_theta / infil_cumul_F_pre)
+		else:
+			GA_f_cap = 1e9  # infinite capacity before any infiltration
+
 		# no ponding should be occurring at initial (all infiltrates into ground) or ponding will occur but time < T_p-T_pp or time > (time required to infiltrate until surface pond is 0)
-		if (S_pre == 0 and rain_I*np.cos(np.radians(slope_beta_deg)) <= max(k_sat_z,infil_rate_f_pre)) or ((S_pre > 0 or rain_I*np.cos(np.radians(slope_beta_deg)) > max(k_sat_z,infil_rate_f_pre)) and (((cur_t - T_p + T_pp) <= 0) or (time_all_infil <= cur_t))):
+		# Three no-ponding cases:
+		# 1. S_pre==0 and rain <= GA capacity: soil can absorb all rain
+		# 2. S_pre==0 and rain > GA capacity but not yet at ponding time: pre-ponding infiltration
+		# 3. S_pre>0 (active ponding) but either not at ponding time or all surface water absorbed
+		# Note: time_all_infil should only be checked when S_pre > 0, otherwise it falsely
+		# indicates "ponding ended" when ponding hasn't even started yet.
+		if (S_pre == 0 and rain_I*np.cos(np.radians(slope_beta_deg)) <= max(k_sat_z,GA_f_cap)) or \
+		   (S_pre == 0 and rain_I*np.cos(np.radians(slope_beta_deg)) > max(k_sat_z,GA_f_cap) and (cur_t - T_p + T_pp) <= 0) or \
+		   (S_pre > 0 and ((cur_t - T_p + T_pp) <= 0 or time_all_infil <= cur_t)):
 
 			# infiltration 
 			infil_rate_f_new = rain_I*np.cos(np.radians(slope_beta_deg))
@@ -3842,7 +3903,8 @@ def compute_GA_nonUniRain_slanted_MP(compute_GA_slanted_nonUniRain_input):
 				RO_new = RO_pre
 
 		# ponding needs to be considered for the rainfall infiltration
-		elif ((S_pre > 0 or rain_I*np.cos(np.radians(slope_beta_deg)) > max(k_sat_z,infil_rate_f_pre)) and (((cur_t - T_p + T_pp) > 0) or (time_all_infil > cur_t))):
+		elif (S_pre == 0 and rain_I*np.cos(np.radians(slope_beta_deg)) > max(k_sat_z,GA_f_cap) and (cur_t - T_p + T_pp) > 0) or \
+		     (S_pre > 0 and (cur_t - T_p + T_pp) > 0 and time_all_infil > cur_t):
 
 			# compute cumulative rainfall amount
 			infil_cumul_F_new = float(fixed_point(GA_F_slanted_iter_noF0comp, infil_cumul_F_pre, args=(infil_cumul_F_pre, k_sat_z, cur_t - T_p + T_pp, psi_r_head, delta_theta, slope_beta_deg), xtol=1e-4))
