@@ -7724,6 +7724,24 @@ def perform_3DTSP_v2(monte_carlo_iter_filename_dict):
 			z_w_t, _, _ = read_GIS_data(filename_dict["z_w"][str(start_time_step)][1], filename_dict["z_w"][str(start_time_step)][0], full_output=False)
 			wet_z_t, _, _ = read_GIS_data(filename_dict["wet_z"][str(start_time_step)][1], filename_dict["wet_z"][str(start_time_step)][0], full_output=False)
 
+			# degree of saturation at start_time_step
+			gwt_dz_start = DEM_surface - gwt_z_t
+			sat_from_top_start = np.clip(z_w_t, 0, soil_thickness)
+			sat_from_bottom_start = np.clip(soil_thickness - gwt_dz_start, 0, soil_thickness)
+			unsaturated_thickness_start = np.clip(soil_thickness - sat_from_top_start - sat_from_bottom_start, 0, soil_thickness)
+			deg_sat_t = np.where(
+				(soil_thickness > 0) & (theta_sat > 0),
+				np.clip(1.0 - (unsaturated_thickness_start * delta_theta) / (soil_thickness * theta_sat), 0.0, 1.0),
+				0.0
+			)
+			# initialize deg_sat dict in results if not present
+			if "deg_sat" not in monte_carlo_iter_result_filename_dict["iterations"][str(iter_num)]:
+				monte_carlo_iter_result_filename_dict["iterations"][str(iter_num)]["deg_sat"] = {}
+			monte_carlo_iter_result_filename_dict["iterations"][str(iter_num)]["deg_sat"][str(start_time_step)] = [f"{output_folder_path}iteration_{iter_num}/hydraulics/", f"{filename} - deg_sat - t{start_time_step} - i{iter_num}.{output_txt_format}"]
+			if os.path.exists(f"{output_folder_path}iteration_{iter_num}/hydraulics/{filename} - deg_sat - t{start_time_step} - i{iter_num}.html") == False and plot_option:
+				plot_DEM_mat_map_v8_0(f"{output_folder_path}iteration_{iter_num}/hydraulics/", f"{filename} - deg_sat - t{start_time_step} - i{iter_num}", 'S_r', gridUniqueX, gridUniqueY, None, deg_sat_t, contour_limit=[0, 1.0, 0.1], open_html=False, layout_width=1000, layout_height=1000)
+			generate_output_GIS(output_txt_format, f"{output_folder_path}iteration_{iter_num}/hydraulics/", filename, "deg_sat", deg_sat_t, DEM_noData, nodata_value, gridUniqueX, gridUniqueY, deltaX, deltaY, XYZ_row_or_col_increase_first, dx_dp, dy_dp, theta_dp, time=start_time_step, iteration=iter_num)
+
 		#####################################
 		# generate all slip surface soil column data
 		#####################################
@@ -7990,6 +8008,19 @@ def perform_3DTSP_v2(monte_carlo_iter_filename_dict):
 				gwt_z_new_f[i,j] = gwt_z_new
 				gwt_dz_new_f[i,j] = DEM_surface[i,j] - gwt_z_new  
 
+			# degree of saturation: average water content / saturated water content
+			# saturated from top (wetting front): z_w
+			# saturated from bottom (below gwt): max(soil_thickness - gwt_dz, 0)
+			# unsaturated zone (between wetting front and gwt) has theta_initial = theta_sat - delta_theta
+			sat_from_top = np.clip(infil_zw_f, 0, soil_thickness)
+			sat_from_bottom = np.clip(soil_thickness - gwt_dz_new_f, 0, soil_thickness)
+			unsaturated_thickness = np.clip(soil_thickness - sat_from_top - sat_from_bottom, 0, soil_thickness)
+			deg_sat_f = np.where(
+				(soil_thickness > 0) & (theta_sat > 0),
+				np.clip(1.0 - (unsaturated_thickness * delta_theta) / (soil_thickness * theta_sat), 0.0, 1.0),
+				0.0
+			)
+
 			# add results to the filename dictionary
 			monte_carlo_iter_result_filename_dict["iterations"][str(iter_num)]["gwt_dz"][str(time_step+1)] = [f"{output_folder_path}iteration_{iter_num}/hydraulics/", f"{filename} - gwt_dz - t{time_step+1} - i{iter_num}.{output_txt_format}"]
 			monte_carlo_iter_result_filename_dict["iterations"][str(iter_num)]["gwt_z"][str(time_step+1)] = [f"{output_folder_path}iteration_{iter_num}/hydraulics/", f"{filename} - gwt_z - t{time_step+1} - i{iter_num}.{output_txt_format}"]
@@ -8000,6 +8031,7 @@ def perform_3DTSP_v2(monte_carlo_iter_filename_dict):
 			monte_carlo_iter_result_filename_dict["iterations"][str(iter_num)]["F_cumul"][str(time_step+1)] = [f"{output_folder_path}iteration_{iter_num}/hydraulics/", f"{filename} - F_cumul - t{time_step+1} - i{iter_num}.{output_txt_format}"]
 			monte_carlo_iter_result_filename_dict["iterations"][str(iter_num)]["z_w"][str(time_step+1)] = [f"{output_folder_path}iteration_{iter_num}/hydraulics/", f"{filename} - z_w - t{time_step+1} - i{iter_num}.{output_txt_format}"]
 			monte_carlo_iter_result_filename_dict["iterations"][str(iter_num)]["wet_z"][str(time_step+1)] = [f"{output_folder_path}iteration_{iter_num}/hydraulics/", f"{filename} - wet_z - t{time_step+1} - i{iter_num}.{output_txt_format}"]
+			monte_carlo_iter_result_filename_dict["iterations"][str(iter_num)]["deg_sat"][str(time_step+1)] = [f"{output_folder_path}iteration_{iter_num}/hydraulics/", f"{filename} - deg_sat - t{time_step+1} - i{iter_num}.{output_txt_format}"]
 
 			# generate plots
 			if os.path.exists(f"{output_folder_path}iteration_{iter_num}/hydraulics/{filename} - gwt_dz - t{time_step+1} - i{iter_num}.html") == False and plot_option:
@@ -8020,6 +8052,8 @@ def perform_3DTSP_v2(monte_carlo_iter_filename_dict):
 				plot_DEM_mat_map_v8_0(f"{output_folder_path}iteration_{iter_num}/hydraulics/", f"{filename} - z_w - t{time_step+1} - i{iter_num}", 'z_w', gridUniqueX, gridUniqueY, None, infil_zw_f, contour_limit=None, open_html=False, layout_width=1000, layout_height=1000)
 			if os.path.exists(f"{output_folder_path}iteration_{iter_num}/hydraulics/{filename} - wet_z - t{time_step+1} - i{iter_num}.html") == False and plot_option:
 				plot_DEM_mat_map_v8_0(f"{output_folder_path}iteration_{iter_num}/hydraulics/", f"{filename} - wet_z - t{time_step+1} - i{iter_num}", 'wet_z', gridUniqueX, gridUniqueY, None, wetting_front_z_f, contour_limit=None, open_html=False, layout_width=1000, layout_height=1000)
+			if os.path.exists(f"{output_folder_path}iteration_{iter_num}/hydraulics/{filename} - deg_sat - t{time_step+1} - i{iter_num}.html") == False and plot_option:
+				plot_DEM_mat_map_v8_0(f"{output_folder_path}iteration_{iter_num}/hydraulics/", f"{filename} - deg_sat - t{time_step+1} - i{iter_num}", 'S_r', gridUniqueX, gridUniqueY, None, deg_sat_f, contour_limit=[0, 1.0, 0.1], open_html=False, layout_width=1000, layout_height=1000)
 
 			# generate output file
 			generate_output_GIS(output_txt_format, f"{output_folder_path}iteration_{iter_num}/hydraulics/", filename, "gwt_dz", gwt_dz_new_f, DEM_noData, nodata_value, gridUniqueX, gridUniqueY, deltaX, deltaY, XYZ_row_or_col_increase_first, dx_dp, dy_dp, dz_dp, time=time_step+1, iteration=iter_num)
@@ -8031,6 +8065,7 @@ def perform_3DTSP_v2(monte_carlo_iter_filename_dict):
 			generate_output_GIS(output_txt_format, f"{output_folder_path}iteration_{iter_num}/hydraulics/", filename, "F_cumul", infil_cumul_F_f, DEM_noData, nodata_value, gridUniqueX, gridUniqueY, deltaX, deltaY, XYZ_row_or_col_increase_first, dx_dp, dy_dp, cumul_dp, time=time_step+1, iteration=iter_num)
 			generate_output_GIS(output_txt_format, f"{output_folder_path}iteration_{iter_num}/hydraulics/", filename, "z_w", infil_zw_f, DEM_noData, nodata_value, gridUniqueX, gridUniqueY, deltaX, deltaY, XYZ_row_or_col_increase_first, dx_dp, dy_dp, dz_dp, time=time_step+1, iteration=iter_num)
 			generate_output_GIS(output_txt_format, f"{output_folder_path}iteration_{iter_num}/hydraulics/", filename, "wet_z", wetting_front_z_f, DEM_noData, nodata_value, gridUniqueX, gridUniqueY, deltaX, deltaY, XYZ_row_or_col_increase_first, dx_dp, dy_dp, dz_dp, time=time_step+1, iteration=iter_num)
+			generate_output_GIS(output_txt_format, f"{output_folder_path}iteration_{iter_num}/hydraulics/", filename, "deg_sat", deg_sat_f, DEM_noData, nodata_value, gridUniqueX, gridUniqueY, deltaX, deltaY, XYZ_row_or_col_increase_first, dx_dp, dy_dp, theta_dp, time=time_step+1, iteration=iter_num)
 
 			#############################
 			## Physically-based slope stability
@@ -9066,6 +9101,7 @@ if __name__ == '__main__':
 			F_cumul_dict = {}
 			z_w_dict = {}
 			wet_z_dict = {}
+			deg_sat_dict = {}
 			for iter_num in range(1,monte_carlo_iteration_max+1):
 				output_folder_path_iter_temp_hydraulics = f"{output_folder_path}iteration_{iter_num}/hydraulics/"
 
@@ -9094,6 +9130,18 @@ if __name__ == '__main__':
 				generate_output_GIS(output_txt_format, output_folder_path_iter_temp_hydraulics, filename, "z_w", DEM_infil_zw, DEM_noData, nodata_value, gridUniqueX, gridUniqueY, deltaX, deltaY, XYZ_row_or_col_increase_first, dx_dp, dy_dp, dz_dp, time=0, iteration=iter_num)
 				generate_output_GIS(output_txt_format, output_folder_path_iter_temp_hydraulics, filename, "wet_z", DEM_wetting_front_z, DEM_noData, nodata_value, gridUniqueX, gridUniqueY, deltaX, deltaY, XYZ_row_or_col_increase_first, dx_dp, dy_dp, dz_dp, time=0, iteration=iter_num)
 
+				# degree of saturation at t=0: z_w=0 (no infiltration from top yet unless gwt at surface)
+				# initial S_r is computed from gwt position only; theta values are not yet available per-iteration
+				# so use a geometric estimate: saturated portion = (soil_thickness - gwt_depth) / soil_thickness
+				DEM_deg_sat_t0 = np.where(
+					DEM_soil_thickness > 0,
+					np.clip((DEM_soil_thickness - np.clip(gwt_depth_from_surf, 0, DEM_soil_thickness)) / DEM_soil_thickness, 0.0, 1.0),
+					0.0
+				)
+				generate_output_GIS(output_txt_format, output_folder_path_iter_temp_hydraulics, filename, "deg_sat", DEM_deg_sat_t0, DEM_noData, nodata_value, gridUniqueX, gridUniqueY, deltaX, deltaY, XYZ_row_or_col_increase_first, dx_dp, dy_dp, theta_dp, time=0, iteration=iter_num)
+				if os.path.exists(output_folder_path_iter_temp_hydraulics+filename+f' - deg_sat - t0 - i{iter_num}.html') == False and plot_option:
+					plot_DEM_mat_map_v8_0(output_folder_path_iter_temp_hydraulics, filename+f' - deg_sat - t0 - i{iter_num}', 'S_r', gridUniqueX, gridUniqueY, None, DEM_deg_sat_t0, contour_limit=[0, 1.0, 0.1], open_html=False, layout_width=1000, layout_height=1000)
+
 				# store file name
 				Surface_Storage_dict["0"] = [output_folder_path_iter_temp_hydraulics, filename+f" - Surface_Storage - t0 - i{iter_num}.{output_txt_format}"]
 				Precipitation_dict["0"] = [output_folder_path_iter_temp_hydraulics, filename+f" - Precipitation - t0 - i{iter_num}.{output_txt_format}"]
@@ -9102,6 +9150,7 @@ if __name__ == '__main__':
 				F_cumul_dict["0"] = [output_folder_path_iter_temp_hydraulics, filename+f" - F_cumul - t0 - i{iter_num}.{output_txt_format}"]
 				z_w_dict["0"] = [output_folder_path_iter_temp_hydraulics, filename+f" - z_w - t0 - i{iter_num}.{output_txt_format}"]
 				wet_z_dict["0"] = [output_folder_path_iter_temp_hydraulics, filename+f" - wet_z - t0 - i{iter_num}.{output_txt_format}"]
+				deg_sat_dict["0"] = [output_folder_path_iter_temp_hydraulics, filename+f" - deg_sat - t0 - i{iter_num}.{output_txt_format}"]
 
 				# store file name
 				temp_dict = monte_carlo_iter_filename_dict["iterations"][str(iter_num)]
@@ -9112,6 +9161,7 @@ if __name__ == '__main__':
 				temp_dict["F_cumul"] = deepcopy(F_cumul_dict)
 				temp_dict["z_w"] = deepcopy(z_w_dict)
 				temp_dict["wet_z"] = deepcopy(wet_z_dict)
+				temp_dict["deg_sat"] = deepcopy(deg_sat_dict)
 				monte_carlo_iter_filename_dict["iterations"][str(iter_num)] = deepcopy(temp_dict)
 				del temp_dict
 
