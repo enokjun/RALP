@@ -2039,7 +2039,7 @@ def RALP_GUI():
 
 		new_window = tk.Toplevel(root)
 		new_window.title("ET History - GIS file")
-		new_window.geometry("600x700")
+		new_window.geometry("650x700")
 		new_window.resizable(width=False, height=True)
 		main_canvas = tk.Canvas(new_window)
 
