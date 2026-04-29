@@ -247,9 +247,9 @@ def RALP_GUI():
 	###########################################################################
 	root = tk.Tk()
 
-	root.title("Robust Areal Landslide Prediction (RALP) v1.11")    # S/W title
+	root.title("Robust Areal Landslide Prediction (RALP) v1.12")    # S/W title
 	root.call('wm', 'iconphoto', root._w, tk.PhotoImage(file='NGI_logo_cropped.png'))     # icon
-	root.geometry("1995x1020")            # window size - when need to fix 
+	root.geometry("2110x1020")            # window size - when need to fix 
 
 	###########################################################################
 	## mainframe, canvas and scrollbar
@@ -277,7 +277,7 @@ def RALP_GUI():
 	# root.resizable(width=False, height=False)
 
 	# set maxium and minimum size GUI can become
-	root.maxsize(2000, 1100)
+	root.maxsize(2115, 1050)
 	root.minsize(650, 500)
 
 	#################################
@@ -3833,7 +3833,7 @@ def RALP_GUI():
 	"""need to update the manual link"""
 	def open_manual_file_command():
 		# name of help file
-		help_file = app_path+"/Robust Areal Landslide Prediction (RALP) - GUI v1.11 - User Manual.pdf"
+		help_file = app_path+"/Robust Areal Landslide Prediction (RALP) - GUI v1.12 - User Manual.pdf"
 		if opsys == "Windows":
 			os.startfile(help_file)
 		elif opsys == "Darwin":
@@ -8459,7 +8459,7 @@ def RALP_GUI():
 	######################################
 	# display input file name - or user can directly type in the name
 	software_label = tk.Label(GUI_frame, text="Robust Areal Landslide Prediction (RALP)", font=("Arial", 16, 'bold')) 
-	creator_label = tk.Label(GUI_frame, text="Dr. Enok Cheon (3DTSP & GUI) and Dr. Emir A. Oguz (3DPLS) - v1.11", font=("Arial", 12)) 
+	creator_label = tk.Label(GUI_frame, text="Dr. Enok Cheon & Ole W. Eiesland (3DTSP & GUI), Dr. Emir A. Oguz (3DPLS) - v1.12", font=("Arial", 12)) 
 
 	# title and version
 	software_label.grid(row=0, column=0, columnspan=8, padx=10, pady=(10,5), sticky="we")
