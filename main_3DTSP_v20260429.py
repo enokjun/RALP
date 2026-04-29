@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 
 # /// script
-# requires-python = ">=3.10,<3.11"
+# requires-python = ">=3.10,<=3.11"
 # dependencies = [
 #   "pyyaml==6.0.1",
 #   "numpy==1.26.4",
@@ -15,8 +15,8 @@
 # ///
 
 '''
-Author:     Enok Cheon 
-Date:       Feb 26, 2026
+Author:     Enok Cheon and Ole Wostyck Eiesland
+Date:       Apr 29, 2026
 Purpose:    Physically-based Rainfall-Induced Landslide Susceptibility 
 			through 3D Translational Slope Probabilistic (3DTSP) Model
 Language:   Python3
@@ -45,6 +45,9 @@ IN THE SOFTWARE.
 ###############
 ## version description
 ###############
+20260429
+- add evapotranspiration (ET) to the Green-Ampt hydrological simulation
+
 20260228
 - fixed bug that arises when only the hydrological simulation is performed
 

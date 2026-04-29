@@ -6,7 +6,7 @@ for performing physically based landslide susceptibility analysis for 3DTSP and 
 The repository provides the necessary Python scripts to run the RALP software on Windows, Linux, and Mac OS. 
 However, it requires users to install Python and the necessary libraries.
 
-For Windows users, it is recommended to download the **"RALP_v1_11_window_setup.exe"** and install it on a local Windows PC. 
+For Windows users, it is recommended to download the **"RALP_v1_12_window_setup.exe"** and install it on a local Windows PC. 
 It already includes Python and the libraries required to run 3DTSP and 3DPLS. 
 Therefore, it does not require users to install or set up a Python environment.
 If, for any reason, the software exe file is considered to be dangerous (virus or company system),
@@ -15,7 +15,7 @@ Otherwise, please use the **start_GUI_windows.bat** file to start the Windows ve
 
 **Update on the RALP windows version might be slower, so please check the version**
 
-More details on the installation, RALP manual, and examples are described in the **"Robust Areal Landslide Prediction (RALP) - GUI v1.11 - User Manual.pdf"**.
+More details on the installation, RALP manual, and examples are described in the **"Robust Areal Landslide Prediction (RALP) - GUI v1.12 - User Manual.pdf"**.
 
 # References
 - [3DTS] Cheon E, Oguz EA, DiBiagio A, Piciullo L (2026) A 3D Shallow Translational Landslide Susceptibility Model Accounting for Side Resistance and Vegetation Roots. Environmental Modelling & Software. 106977. https://doi.org/10.1016/j.envsoft.2026.106977
@@ -25,13 +25,16 @@ More details on the installation, RALP manual, and examples are described in the
 - [3DTS] DiBiagio, A., Schwarz, M., Borrajo-Pelaez, R., Ngo, H. M., Cohen, D., Oen, A., Tallaksen, L. M., & Capobianco, V. (under review). Quantifying the spatio-temporal mechanical reinforcement effects of the pioneer species Betula pendula on slope stability: experimental investigations and modelling for a case study in Western Norway. Ecological Engineering. 
 
 # Acknowledgement
-- The slope stability models were developed through contributions and comments by **Dr. Emir A. Oguz**, **Amanda DiBiagio**, and **Lica Piciullo**
+- The slope stability models were developed through contributions and comments by **Dr. Emir A. Oguz**, **Amanda DiBiagio**, **Ole W. Eiesland** and **Lica Piciullo**
 - The preparation of the user manual was funded by the basic support and the HUT project provided to Norwegian Geotechnical Institute (NGI) by the Research Council of Norway
 
 # Contact
 - Please email **enok.cheon@ngi.no** if you need to. However, to inform us of any found bugs, software issues, or general feedback, please use the GitHub Issues
 
 # Version
+**ver 1.12**
+- added evapotranspiration (ET) to Green-Ampt rainfall infiltration
+  
 **ver 1.11**
 - corrected bug where "Skip (only perform infiltration)" causing error
 

@@ -1,9 +1,9 @@
 #!/usr/bin/python3
 
 '''
-Authors:		Dr. Enok Cheon (3DTSP and GUI), Dr. Emir A. Oguz (3DPLS)
+Authors:		Dr. Enok Cheon (3DTSP and GUI), Dr. Emir A. Oguz (3DPLS), Ole Wostyck Eiesland (3DTSP and GUI)
 Association:	Dept. of Natural Hazards, NGI, Sandakerveien 140, 0484 Oslo
-Date:           Apr 07, 2026
+Date:           Apr 29, 2026
 Purpose:		Robust Areal Landslide Prediction (RALP) - 3DTSP and 3DPLS
 Language:		Python3
 License:		MIT
@@ -32,9 +32,9 @@ if __name__ == '__main__':
 	print(
 '''
 ###########################################################################
-Authors:       Dr. Enok Cheon (3DTS and GUI), Dr. Emir A. Oguz (3DPLS)
+Authors:       Dr. Enok Cheon (3DTS and GUI), Dr. Emir A. Oguz (3DPLS), Ole Wostyck Eiesland (3DTSP and GUI)
 Association:   Dept. of Natural Hazards, NGI, Sandakerveien 140, 0484 Oslo
-Date:          Apr 07, 2026
+Date:          Apr 29, 2026
 Purpose:       Robust Areal Landslide Prediction (RALP) - 3DTSP and 3DPLS
 Language:      Python3
 License:       MIT
@@ -87,7 +87,7 @@ import sys
 from platform import system
 
 # main functions
-import main_3DTSP_v20260228 as m3DTSP
+import main_3DTSP_v20260429 as m3DTSP
 
 if __name__ == '__main__':
 	print("Importing modules (this may take a while) ... ")
@@ -177,7 +177,7 @@ def RALP_GUI():
 		else:
 			print("\nNo graphical file manager found. Install one among:")
 			print("    gedit, kate, sublime_text, geany, leafpad")
-			print("or edit the top of main_3DTSP_v20260228.py")
+			print("or edit the top of main_3DTSP_v20260429.py")
 			print("to reflect your system's set-up.")
 			flag += 1
 
@@ -202,7 +202,7 @@ def RALP_GUI():
 		else:
 			print("\nNo graphical text editor found. Install one among:")
 			print("    gedit, kate, sublime_text, geany, leafpad")
-			print("or edit the top of main_3DTSP_v20260228.py.")
+			print("or edit the top of main_3DTSP_v20260429.py.")
 			flag += 1
 		
 		if os.path.isfile("/usr/bin/xdg-open") == True:
@@ -222,7 +222,7 @@ def RALP_GUI():
 		else:
 			print("\nNo PDF viewer found. Install one among:")
 			print("    qpdfview, okular, evince, acroread")
-			print("or edit the top of main_3DTSP_v20260228.py.")
+			print("or edit the top of main_3DTSP_v20260429.py.")
 			flag += 1
 
 		if flag > 0:
@@ -3890,7 +3890,7 @@ def RALP_GUI():
 				run_bash_script = "#!/bin/bash\n\n"
 				run_bat_script = "@echo off\n\n"
 
-				run_python_code = '\"' + '.\\main_3DTSP_v20260228.py\" \"'+file_name_only+'\"' 
+				run_python_code = '\"' + '.\\main_3DTSP_v20260429.py\" \"'+file_name_only+'\"' 
 
 				run_bash_script += f"python3 {run_python_code}\n"
 				run_bat_script += f"python {run_python_code} && pause && exit \n"
@@ -3907,7 +3907,7 @@ def RALP_GUI():
 				## copy paste the main_3DTS script
 				######################################
 				shutil.copy(overall_input_folder_str.get(), output_folder_str.get()+f".\\{file_name_only}")
-				shutil.copy(r"./main_3DTSP_v20260228.py", output_folder_str.get()+r"./main_3DTSP_v20260228.py")
+				shutil.copy(r"./main_3DTSP_v20260429.py", output_folder_str.get()+r"./main_3DTSP_v20260429.py")
 
 			#####################
 			## generate dictionary hold input file 
@@ -5361,7 +5361,7 @@ def RALP_GUI():
 				run_bash_script = "#!/bin/bash\n\n"
 				run_bat_script = "@echo off\n\n"
 
-				run_python_code = '\"' + '.\\main_3DTSP_v20260228.py\" \"'+ project_name_str.get()+'_input.yaml'+'\"' 
+				run_python_code = '\"' + '.\\main_3DTSP_v20260429.py\" \"'+ project_name_str.get()+'_input.yaml'+'\"' 
 
 				run_bash_script += f"python3 {run_python_code}\n"
 				run_bat_script += f"python {run_python_code} && pause && exit \n"
@@ -5377,7 +5377,7 @@ def RALP_GUI():
 				######################################
 				## copy paste the main_3DTS script
 				######################################
-				shutil.copy(r"./main_3DTSP_v20260228.py", output_folder_str.get()+r"./main_3DTSP_v20260228.py")
+				shutil.copy(r"./main_3DTSP_v20260429.py", output_folder_str.get()+r"./main_3DTSP_v20260429.py")
 
 
 		##########################################
@@ -5958,7 +5958,7 @@ def RALP_GUI():
 					sys.exit(1)
 					
 				## write the cmd or terminal command line to run the 3DTS simulation
-				run_python_code = '\".\\main_3DTSP_v20260228.py\" \"'+overall_input_folder_str.get()+'\"' 
+				run_python_code = '\".\\main_3DTSP_v20260429.py\" \"'+overall_input_folder_str.get()+'\"' 
 
 				status.config(text = "simulation running ")
 
@@ -7450,7 +7450,7 @@ def RALP_GUI():
 					sys.exit(1)
 					
 				## write the cmd or terminal command line to run the 3DTS simulation
-				run_python_code = '\"' + '.\\main_3DTSP_v20260228.py\" \"'+output_folder_str.get() + '\\' + project_name_str.get()+'_3DTSP_input.yaml'+'\"' 
+				run_python_code = '\"' + '.\\main_3DTSP_v20260429.py\" \"'+output_folder_str.get() + '\\' + project_name_str.get()+'_3DTSP_input.yaml'+'\"' 
 
 				## open new terminal or cmd to run 3DTS simulation
 				if opsys == "Windows":  # cmd in windows
